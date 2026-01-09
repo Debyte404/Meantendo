@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS 
+        "main.c"
+    INCLUDE_DIRS 
+        "."
+    REQUIRES 
+        meantendo_core
+        meantendo_display
+        meantendo_input
+        meantendo_games
+        meantendo_ota
+)

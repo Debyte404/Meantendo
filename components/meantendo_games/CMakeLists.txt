@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS 
+        "src/snake.c"
+        "src/pong.c"
+        "src/seal_life.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        meantendo_core
+        meantendo_display
+        meantendo_input
+)

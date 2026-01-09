@@ -8,6 +8,9 @@
 #include "core/Splash.hpp"
 #include "core/Menu.hpp"
 
+// OTA Update System
+#include "ota/OTAMenuItem.hpp"
+
 extern Adafruit_ST7735 tft;
 
 // actual storage for the externs
@@ -69,25 +72,34 @@ extern GameDef pongGame;
 extern GameDef one;
 extern GameDef two;
 
+// OTA Update menu item (defined in OTAMenuItem.hpp)
+extern GameDef otaUpdateGame;
+
 
 // ==============================================
 //  Setup / Loop
 // ==============================================
 void setup() {
   Serial.begin(115200);
+  Serial.println(F("\n=== Meantendo Gaming Console ==="));
+  Serial.printf("Firmware: v%d.%d.%d\n", 
+                MEANTENDO_VERSION_MAJOR, 
+                MEANTENDO_VERSION_MINOR, 
+                MEANTENDO_VERSION_PATCH);
+  Serial.println(F("================================\n"));
+  
   tft.initR(INITR_GREENTAB);
   tft.setRotation(1);
   tft.fillScreen(ST77XX_BLACK);
 
+  // Register games
   registerGame(&snakeGame);
   registerGame(&pongGame);
   registerGame(&one);
   registerGame(&two);
-  registerGame(&pongGame);
-  registerGame(&one);
-  registerGame(&snakeGame);
-  registerGame(&two);
-  registerGame(&snakeGame);
+  
+  // Register OTA Update as last menu item for easy access
+  registerGame(&otaUpdateGame);
 
   initInput();
 

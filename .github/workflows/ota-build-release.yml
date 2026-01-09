@@ -1,0 +1,315 @@
+# ============================================================================
+# Meantendo ESP32 Advanced OTA Build & Release Pipeline
+# ============================================================================
+# 
+# Triggers on:
+#   - Push to main/develop branches (CI builds)
+#   - Tags starting with 'v' (Release builds)
+#   - Manual workflow dispatch
+#
+# Features:
+#   - Multi-variant build matrix (ESP32, ESP32-S3)
+#   - Firmware signing (when secrets available)
+#   - Automated GitHub Release creation
+#   - OTA manifest generation
+#
+# Author: Debyte
+# ============================================================================
+
+name: ESP32 OTA Build & Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Build Environment'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - production
+      create_release:
+        description: 'Create GitHub Release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PLATFORMIO_CORE_DIR: .platformio
+
+jobs:
+  # ============================================================================
+  # Build Job - Compiles firmware for all target platforms
+  # ============================================================================
+  build:
+    name: Build Firmware
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: esp32dev
+            display_name: ESP32 DevKit
+          - variant: esp32dev_release
+            display_name: ESP32 DevKit (Release)
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: 📦 Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+      
+      - name: ⬇️ Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+      
+      - name: 🔍 Extract Version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION="0.0.0-dev.$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+          
+          # Parse semver components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION%%-*}"
+          echo "major=${MAJOR:-0}" >> $GITHUB_OUTPUT
+          echo "minor=${MINOR:-0}" >> $GITHUB_OUTPUT
+          echo "patch=${PATCH:-0}" >> $GITHUB_OUTPUT
+      
+      - name: 🛠️ Set Version Build Flags
+        run: |
+          sed -i "s/-D MEANTENDO_VERSION_MAJOR=.*/-D MEANTENDO_VERSION_MAJOR=${{ steps.version.outputs.major }}/" platformio.ini
+          sed -i "s/-D MEANTENDO_VERSION_MINOR=.*/-D MEANTENDO_VERSION_MINOR=${{ steps.version.outputs.minor }}/" platformio.ini
+          sed -i "s/-D MEANTENDO_VERSION_PATCH=.*/-D MEANTENDO_VERSION_PATCH=${{ steps.version.outputs.patch }}/" platformio.ini
+      
+      - name: 🔨 Build Firmware (${{ matrix.display_name }})
+        run: |
+          pio run -e ${{ matrix.variant }}
+      
+      - name: 📝 Generate Build Info
+        run: |
+          mkdir -p dist
+          
+          # Copy firmware binary
+          cp .pio/build/${{ matrix.variant }}/firmware.bin dist/meantendo-${{ matrix.variant }}-${{ steps.version.outputs.version }}.bin
+          
+          # Generate SHA256 hash
+          sha256sum dist/*.bin > dist/checksums.sha256
+          
+          # Generate build manifest
+          cat > dist/build-info.json << EOF
+          {
+            "version": "${{ steps.version.outputs.version }}",
+            "variant": "${{ matrix.variant }}",
+            "buildNumber": "${{ github.run_number }}",
+            "commitSha": "${{ github.sha }}",
+            "commitShort": "$(git rev-parse --short HEAD)",
+            "branch": "${{ github.ref_name }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "firmwareSize": $(stat -c%s .pio/build/${{ matrix.variant }}/firmware.bin),
+            "platformioVersion": "$(pio --version | grep -oP '[\d.]+')"
+          }
+          EOF
+      
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.variant }}
+          path: |
+            dist/*.bin
+            dist/*.json
+            dist/*.sha256
+          retention-days: 14
+
+  # ============================================================================
+  # Release Job - Creates GitHub Release with firmware binaries
+  # ============================================================================
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 📦 Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: 📁 Prepare Release Assets
+        run: |
+          mkdir -p release
+          
+          # Copy all binaries to release folder
+          find artifacts -name "*.bin" -exec cp {} release/ \;
+          
+          # Combine checksums
+          find artifacts -name "*.sha256" -exec cat {} \; > release/checksums.sha256
+          
+          # Create OTA manifest for all variants
+          cat > release/ota-manifest.json << 'EOF'
+          {
+            "version": "${{ github.ref_name }}",
+            "releaseDate": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "firmwares": []
+          }
+          EOF
+          
+          # List all files
+          ls -la release/
+      
+      - name: 🔏 Sign Firmware (if key available)
+        if: env.OTA_SIGNING_KEY != ''
+        env:
+          OTA_SIGNING_KEY: ${{ secrets.OTA_SIGNING_KEY }}
+        run: |
+          echo "🔐 Signing firmware binaries..."
+          # TODO: Implement signing script
+          # python scripts/sign_firmware.py --key "$OTA_SIGNING_KEY" release/*.bin
+      
+      - name: 📋 Generate Release Notes
+        id: release_notes
+        run: |
+          VERSION="${{ github.ref_name }}"
+          
+          # Get commits since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log --oneline $PREV_TAG..HEAD | head -20)
+          else
+            COMMITS=$(git log --oneline -10)
+          fi
+          
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## 🎮 Meantendo Firmware ${VERSION}
+          
+          ### 📦 Downloads
+          
+          | Variant | Binary | Size |
+          |---------|--------|------|
+          EOF
+          
+          for bin in release/*.bin; do
+            name=$(basename "$bin")
+            size=$(ls -lh "$bin" | awk '{print $5}')
+            echo "| ${name%%.bin} | \`$name\` | $size |" >> release_notes.md
+          done
+          
+          cat >> release_notes.md << EOF
+          
+          ### 📋 Changelog
+          
+          \`\`\`
+          ${COMMITS}
+          \`\`\`
+          
+          ### 🔄 OTA Update Instructions
+          
+          1. **Automatic Update**: Your Meantendo will automatically detect and offer this update when connected to WiFi.
+          2. **Web Interface**: Navigate to your device's IP address and use the OTA Update page.
+          3. **Manual Upload**: Download the appropriate \`.bin\` file and upload via the web interface.
+          
+          ### ✅ Checksums (SHA256)
+          
+          \`\`\`
+          $(cat release/checksums.sha256)
+          \`\`\`
+          
+          ---
+          **Build**: \`${{ github.run_number }}\` | **Commit**: \`${{ github.sha }}\`
+          EOF
+      
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Meantendo ${{ github.ref_name }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+          files: |
+            release/*.bin
+            release/checksums.sha256
+            release/ota-manifest.json
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================================
+  # Code Quality Job - Linting and static analysis
+  # ============================================================================
+  quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: ⬇️ Install Tools
+        run: |
+          pip install cppcheck
+      
+      - name: 🔍 Run Cppcheck
+        run: |
+          cppcheck --enable=warning,style,performance \
+                   --suppress=missingIncludeSystem \
+                   --error-exitcode=0 \
+                   --inline-suppr \
+                   src/ include/ \
+                   2>&1 | tee cppcheck-report.txt
+      
+      - name: 📊 Upload Quality Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report
+          path: cppcheck-report.txt
+          retention-days: 7

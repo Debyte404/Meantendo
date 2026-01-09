@@ -1,0 +1,81 @@
+# ============================================================================
+# Meantendo - Stale Issue/PR Management
+# ============================================================================
+#
+# Automatically marks issues and PRs as stale after inactivity,
+# and closes them if no further activity occurs.
+#
+# Author: Debyte
+# ============================================================================
+
+name: 🧹 Stale Issues & PRs
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Manage Stale Items
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🧹 Mark Stale Issues and PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Issue settings
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          stale-issue-label: 'stale'
+          stale-issue-message: |
+            👋 This issue has been automatically marked as stale because it has not had any activity for 60 days.
+            
+            It will be closed in 14 days if no further activity occurs.
+            
+            If this issue is still relevant:
+            - Add a comment explaining the current status
+            - Remove the `stale` label
+            
+            Thank you for contributing to Meantendo! 🎮
+          close-issue-message: |
+            🔒 This issue has been automatically closed due to inactivity.
+            
+            Feel free to reopen it if the issue persists or create a new issue with updated information.
+            
+            Thank you for contributing to Meantendo! 🎮
+          
+          # PR settings
+          days-before-pr-stale: 30
+          days-before-pr-close: 7
+          stale-pr-label: 'stale'
+          stale-pr-message: |
+            👋 This pull request has been automatically marked as stale because it has not had any activity for 30 days.
+            
+            It will be closed in 7 days if no further activity occurs.
+            
+            If you're still working on this:
+            - Add a comment or push new commits
+            - Remove the `stale` label
+            
+            Thank you for contributing to Meantendo! 🎮
+          close-pr-message: |
+            🔒 This pull request has been automatically closed due to inactivity.
+            
+            Feel free to reopen it if you'd like to continue working on it.
+            
+            Thank you for contributing to Meantendo! 🎮
+          
+          # Labels to exempt from stale management
+          exempt-issue-labels: 'pinned,security,epic,good first issue,help wanted'
+          exempt-pr-labels: 'pinned,security,work in progress'
+          
+          # Only process a limited number per run
+          operations-per-run: 50

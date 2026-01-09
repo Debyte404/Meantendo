@@ -1,0 +1,26 @@
+# Meantendo OTA Partition Table
+# ============================================================================
+# A/B OTA partitions for secure rollback support
+# Total Flash: 4MB (32Mbit)
+# ============================================================================
+#
+# Name,     Type,  SubType,  Offset,    Size,      Flags
+# ============================================================================
+
+# NVS (Non-Volatile Storage) - WiFi credentials, OTA config, stats
+nvs,        data,  nvs,      0x9000,    0x5000,
+
+# OTA data partition - tracks which app partition to boot
+otadata,    data,  ota,      0xE000,    0x2000,
+
+# Application partition 0 (Primary) - ~1.5MB
+app0,       app,   ota_0,    0x10000,   0x180000,
+
+# Application partition 1 (Backup/Rollback) - ~1.5MB  
+app1,       app,   ota_1,    0x190000,  0x180000,
+
+# SPIFFS for assets, web UI files - 512KB
+spiffs,     data,  spiffs,   0x310000,  0x80000,
+
+# NVS for OTA-specific configuration - 16KB
+ota_config, data,  nvs,      0x390000,  0x4000,

@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS 
+        "src/input.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        driver
+        esp_adc
+        meantendo_core
+)

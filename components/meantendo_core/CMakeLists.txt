@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS 
+        "src/game_registry.c"
+        "src/menu.c"
+        "src/splash.c"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        meantendo_display
+        meantendo_input
+)

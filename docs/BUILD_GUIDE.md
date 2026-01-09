@@ -28,11 +28,20 @@ The following pin mapping corresponds to the default configuration in `src/confi
 | **VCC**     | 3.3V      | Power |
 | **GND**     | GND       | Ground|
 | **CS**      | GPIO 5    | Chip Select |
-| **RESET**   | GPIO 4    | Reset |
-| **A0 / DC** | GPIO 2    | Data/Command |
-| **SDA / MOSI**| GPIO 23 | Master Out Slave In |
-| **SCK / CLK** | GPIO 18 | Clock |
-| **LED**     | 3.3V      | Backlight (can be PWM controlled if connected to GPIO) |
+| **RESET**   | GPIO 17   | Reset |
+| **A0 / DC** | GPIO 16   | Data/Command |
+| **SDA / MOSI**| GPIO 23 | Master Out Slave In (Shared) |
+| **SCK / CLK** | GPIO 18 | Clock (Shared) |
+| **LED**     | 3.3V      | Backlight |
+
+### 💾 SD Card (Optional)
+
+| Pin | ESP32 Pin | Logic |
+|-----|-----------|-------|
+| **CS** | GPIO 22 | Chip Select |
+| **MOSI** | GPIO 23 | Shared with Display |
+| **CLK** | GPIO 18 | Shared with Display |
+| **MISO** | GPIO 19 | Master In Slave Out |
 
 ### 🎮 Controls (Buttons)
 
@@ -40,14 +49,18 @@ All buttons are configured as `INPUT_PULLUP`. Connect one side to the GPIO and t
 
 | Button | ESP32 Pin | Function |
 |--------|-----------|----------|
-| **UP** | GPIO 12 | Navigation Up |
-| **DOWN** | GPIO 14 | Navigation Down |
-| **LEFT** | GPIO 27 | Navigation Left |
-| **RIGHT**| GPIO 26 | Navigation Right |
-| **A**    | GPIO 25 | Jump / Select / Attack |
-| **B**    | GPIO 33 | Back / Cancel / Secondary |
+| **UP** (Joy Y) | GPIO 35 | Analog Y |
+| **DOWN** (Joy Y)| GPIO 35 | Analog Y |
+| **LEFT** (Joy X)| GPIO 34 | Analog X |
+| **RIGHT** (Joy X)| GPIO 34 | Analog X |
+| **SELECT** | GPIO 21 | Select / Menu (Moved from 19) |
+| **A**    | GPIO 32 | Primary Action |
+| **B**    | GPIO 33 | Secondary Action |
+| **X**    | GPIO 26 | Action X |
+| **Y**    | GPIO 27 | Action Y |
+| **Back** | GPIO 25 | Back / Escape |
 
-> **Note:** Pin assignments can be modified in `src/core/Input.hpp` or `src/config.h` if needed.
+> **Note:** Pin assignments are defined in `components/meantendo_core/include/meantendo_config.h`.
 
 ### 🔊 Audio (Optional)
 

@@ -11,6 +11,7 @@ idf_component_register(
         meantendo_display
         meantendo_input
         doom
+        meantendo_storage
         esp_partition
         fatfs
         spiffs

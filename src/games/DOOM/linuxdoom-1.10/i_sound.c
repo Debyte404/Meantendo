@@ -52,8 +52,8 @@ rcsid[] = "$Id: i_unix.c,v 1.5 1997/02/03 22:45:10 b1 Exp $";
 // UNIX hack, to be removed.
 #ifdef SNDSERV
 // Separate sound server process.
-FILE*	sndserver=0;
-char*	sndserver_filename = "./sndserver ";
+// FILE*	sndserver=0;
+// const char*	sndserver_filename = "./sndserver ";
 #elif SNDINTR
 
 // Update all 30 millisecs, approx. 30fps synchronized.
@@ -465,15 +465,6 @@ I_StartSound
   // UNUSED
   priority = 0;
   
-#ifdef SNDSERV 
-    if (sndserver)
-    {
-	fprintf(sndserver, "p%2.2x%2.2x%2.2x%2.2x\n", id, pitch, vol, sep);
-	fflush(sndserver);
-    }
-    // warning: control reaches end of non-void function.
-    return id;
-#else
     // Debug.
     //fprintf( stderr, "starting sound %d", id );
     
@@ -483,7 +474,6 @@ I_StartSound
     // fprintf( stderr, "/handle is %d\n", id );
     
     return id;
-#endif
 }
 
 
@@ -524,10 +514,8 @@ int I_SoundIsPlaying(int handle)
 //
 void I_UpdateSound( void )
 {
-#ifdef SNDINTR
   // Debug. Count buffer misses with interrupt.
   static int misses = 0;
-#endif
 
   
   // Mix current sound data.
@@ -620,7 +608,6 @@ void I_UpdateSound( void )
 	rightout += step;
     }
 
-#ifdef SNDINTR
     // Debug check.
     if ( flag )
     {
@@ -636,7 +623,6 @@ void I_UpdateSound( void )
     
     // Increment flag for update.
     flag++;
-#endif
 }
 
 
@@ -696,6 +682,8 @@ void I_ShutdownSound(void)
 void
 I_InitSound()
 { 
+  int i;
+
   // Initialize external data (all sounds) at start, keep static.
   fprintf( stderr, "I_InitSound: ");
   
@@ -727,8 +715,6 @@ I_InitSound()
   
   // Finished initialization.
   fprintf(stderr, "I_InitSound: sound module ready\n");
-    
-#endif
 }
 
 

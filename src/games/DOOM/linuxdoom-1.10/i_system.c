@@ -29,8 +29,11 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #include <string.h>
 
 #include <stdarg.h>
-#include <sys/time.h>
-#include <unistd.h>
+
+// ESP32 / FreeRTOS includes
+#include <esp_timer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "doomdef.h"
 #include "m_misc.h"
@@ -44,8 +47,6 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #pragma implementation "i_system.h"
 #endif
 #include "i_system.h"
-
-
 
 
 int	mb_used = 6;
@@ -87,16 +88,23 @@ byte* I_ZoneBase (int*	size)
 //
 int  I_GetTime (void)
 {
-    struct timeval	tp;
-    struct timezone	tzp;
-    int			newtics;
-    static int		basetime=0;
-  
-    gettimeofday(&tp, &tzp);
-    if (!basetime)
-	basetime = tp.tv_sec;
-    newtics = (tp.tv_sec-basetime)*TICRATE + tp.tv_usec*TICRATE/1000000;
-    return newtics;
+    // config.h ? TICRATE is 35 usually.
+    // ESP timer is in microseconds.
+    // We need 1/35th of a second ticks? Or 1/70th?
+    // DOOM usually runs at 35fps.
+    // The comment says 1/70th second tics?
+    // Let's check TICRATE definition. Assuming 35.
+    
+    int64_t current_time = esp_timer_get_time(); // microseconds
+    // TICRATE is usually 35.
+    // tics = (usec / 1000000.0) * TICRATE
+    
+    // Safety check for TICRATE
+    #ifndef TICRATE
+    #define TICRATE 35
+    #endif
+
+    return (int)((current_time * TICRATE) / 1000000);
 }
 
 
@@ -107,7 +115,10 @@ int  I_GetTime (void)
 void I_Init (void)
 {
     I_InitSound();
-    //  I_InitGraphics();
+    // I_InitGraphics is called by D_DoomMain usually?
+    // But I_Init is called early.
+    // Let's ensure graphics init is called when needed.
+    I_InitGraphics();
 }
 
 //
@@ -125,15 +136,17 @@ void I_Quit (void)
 
 void I_WaitVBL(int count)
 {
-#ifdef SGI
-    sginap(1);                                           
-#else
-#ifdef SUN
-    sleep(0);
-#else
-    usleep (count * (1000000/70) );                                
-#endif
-#endif
+    // Wait for vertical blanking interval?
+    // count is number of VBLs to wait?
+    // 1 VBL = 1/70th sec? Or 1/35th?
+    // Let's assume 1/35 sec = ~28ms
+    // usleep (count * (1000000/70) ); 
+    
+    // vTaskDelay expects ticks. portTICK_PERIOD_MS.
+    // 1000000/70 us = 14285 us = 14 ms
+    
+    int ms = count * (1000 / 70);
+    vTaskDelay(pdMS_TO_TICKS(ms > 0 ? ms : 1)); 
 }
 
 void I_BeginRead(void)

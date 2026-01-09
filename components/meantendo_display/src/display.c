@@ -254,9 +254,12 @@ esp_err_t display_init(void) {
     gpio_config(&io_conf);
     
     // Configure SPI bus
+    // Configure SPI bus
+    // Note: We include MISO (GPIO 19) even though display doesn't use it,
+    // because the SD Card shares this bus and needs MISO.
     spi_bus_config_t buscfg = {
         .mosi_io_num = DISPLAY_PIN_MOSI,
-        .miso_io_num = -1,
+        .miso_io_num = 19, // GPIO 19 is SD_PIN_MISO (Shared Bus)
         .sclk_io_num = DISPLAY_PIN_SCLK,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,

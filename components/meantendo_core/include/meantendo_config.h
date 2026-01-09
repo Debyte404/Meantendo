@@ -39,10 +39,10 @@ extern "C" {
 #define DISPLAY_PIN_BL          -1      // Backlight pin (-1 = always on)
 
 // SD Card Configuration
-#define SD_SPI_HOST             SPI3_HOST // VSPI
+#define SD_SPI_HOST             SPI2_HOST // Shared with Display
 #define SD_MOUNT_POINT          "/sd"
 
-// SD Card Pins (VSPI Default)
+// SD Card Pins (Shared SPI Bus)
 #define SD_PIN_MISO             19
 #define SD_PIN_MOSI             23
 #define SD_PIN_CLK              18
@@ -62,7 +62,7 @@ extern "C" {
 #define INPUT_JOY_Y_PIN         35
 
 // Button GPIOs
-#define INPUT_BTN_SELECT        19
+#define INPUT_BTN_SELECT        21    // Moved from 19 to avoid conflict with VSPI MISO
 #define INPUT_BTN_A             32
 #define INPUT_BTN_B             33
 #define INPUT_BTN_X             26

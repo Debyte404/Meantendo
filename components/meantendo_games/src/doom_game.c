@@ -16,7 +16,7 @@
 #include "game_registry.h"
 #include "doom_app.h"
 #include "display.h"
-#include "sd_card.h"
+#include "storage.h"
 #include <unistd.h>
 
 static const char *TAG = "DOOM_GAME";
@@ -76,7 +76,7 @@ static void doom_task(void *arg) {
     argv[argc++] = "-iwad";
     argv[argc++] = "/wad/doom1.wad";
 
-    if (sd_card_is_mounted()) {
+    if (storage_is_mounted()) {
         // We try to change directory to /sd so saves go there
         ESP_LOGI(TAG, "Setting working directory to /sd");
         chdir("/sd");
@@ -110,7 +110,7 @@ static void doom_start(void) {
     ESP_LOGI(TAG, "Preparing for HELL...");
     
     // Try to mount SD Card
-    if (sd_card_mount() == ESP_OK) {
+    if (storage_init() == ESP_OK) {
         ESP_LOGI(TAG, "SD Card ready for saves.");
     } else {
         ESP_LOGW(TAG, "No SD Card. Saves disabled.");

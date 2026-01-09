@@ -27,7 +27,6 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <stdarg.h>
 
 // ESP32 / FreeRTOS includes
@@ -39,7 +38,6 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #include "m_misc.h"
 #include "i_video.h"
 #include "i_sound.h"
-
 #include "d_net.h"
 #include "g_game.h"
 
@@ -90,14 +88,8 @@ int  I_GetTime (void)
 {
     // config.h ? TICRATE is 35 usually.
     // ESP timer is in microseconds.
-    // We need 1/35th of a second ticks? Or 1/70th?
-    // DOOM usually runs at 35fps.
-    // The comment says 1/70th second tics?
-    // Let's check TICRATE definition. Assuming 35.
     
     int64_t current_time = esp_timer_get_time(); // microseconds
-    // TICRATE is usually 35.
-    // tics = (usec / 1000000.0) * TICRATE
     
     // Safety check for TICRATE
     #ifndef TICRATE
@@ -115,9 +107,6 @@ int  I_GetTime (void)
 void I_Init (void)
 {
     I_InitSound();
-    // I_InitGraphics is called by D_DoomMain usually?
-    // But I_Init is called early.
-    // Let's ensure graphics init is called when needed.
     I_InitGraphics();
 }
 
@@ -136,14 +125,8 @@ void I_Quit (void)
 
 void I_WaitVBL(int count)
 {
-    // Wait for vertical blanking interval?
-    // count is number of VBLs to wait?
-    // 1 VBL = 1/70th sec? Or 1/35th?
-    // Let's assume 1/35 sec = ~28ms
-    // usleep (count * (1000000/70) ); 
-    
     // vTaskDelay expects ticks. portTICK_PERIOD_MS.
-    // 1000000/70 us = 14285 us = 14 ms
+    // 1 VBL roughly 1/70s or 1/35s? Code implied 1/70 in Linux.
     
     int ms = count * (1000 / 70);
     vTaskDelay(pdMS_TO_TICKS(ms > 0 ? ms : 1)); 
@@ -192,5 +175,8 @@ void I_Error (const char *error, ...)
     D_QuitNetGame ();
     I_ShutdownGraphics();
     
-    exit(-1);
+    // Reset/Halt instead of exit(0) loops?
+    // exit(-1) might crash ESP32, better strict loop or restart
+    printf("I_Error called. Halting.\n");
+    while(1) { vTaskDelay(100); }
 }

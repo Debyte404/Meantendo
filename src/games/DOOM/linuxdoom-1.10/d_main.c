@@ -26,6 +26,7 @@
 
 
 static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
+#pragma message "Compiling the MODIFIED d_main.c with R_OK fixes"
 
 #define	BGCOLOR		7
 #define	FGCOLOR		8
@@ -558,7 +559,7 @@ char            title[128];
 //
 // D_AddFile
 //
-void D_AddFile (const char *file)
+void D_AddFile (const char *file) // Verified const correctness
 {
     int     numwadfiles;
     char    *newfile;

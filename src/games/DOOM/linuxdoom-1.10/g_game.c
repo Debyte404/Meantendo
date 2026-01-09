@@ -1189,7 +1189,7 @@ void R_ExecuteSetViewSize (void);
 
 char	savename[256];
 
-void G_LoadGame (char* name) 
+void G_LoadGame (const char* name) 
 { 
     strcpy (savename, name); 
     gameaction = ga_loadgame; 
@@ -1260,7 +1260,7 @@ void G_DoLoadGame (void)
 void
 G_SaveGame
 ( int	slot,
-  char*	description ) 
+  const char*	description ) 
 { 
     savegameslot = slot; 
     strcpy (savedescription, description); 
@@ -1527,7 +1527,7 @@ void G_WriteDemoTiccmd (ticcmd_t* cmd)
 //
 // G_RecordDemo 
 // 
-void G_RecordDemo (char* name) 
+void G_RecordDemo (const char* name) 
 { 
     int             i; 
     int				maxsize;
@@ -1571,9 +1571,9 @@ void G_BeginRecording (void)
 // G_PlayDemo 
 //
 
-char*	defdemoname; 
+const char*	defdemoname; 
  
-void G_DeferedPlayDemo (char* name) 
+void G_DeferedPlayDemo (const char* name) 
 { 
     defdemoname = name; 
     gameaction = ga_playdemo; 
@@ -1622,7 +1622,7 @@ void G_DoPlayDemo (void)
 //
 // G_TimeDemo 
 //
-void G_TimeDemo (char* name) 
+void G_TimeDemo (const char* name) 
 { 	 
     nodrawers = M_CheckParm ("-nodraw"); 
     noblit = M_CheckParm ("-noblit"); 

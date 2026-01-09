@@ -7,6 +7,7 @@
 #include "core/Input.hpp"
 #include "core/Splash.hpp"
 #include "core/Menu.hpp"
+#include "core/Audio.hpp"
 
 // OTA Update System
 #include "ota/OTAMenuItem.hpp"
@@ -102,6 +103,7 @@ void setup() {
   registerGame(&otaUpdateGame);
 
   initInput();
+  MeantendoAudio::init();
 
   showSplash();
   initMenu();

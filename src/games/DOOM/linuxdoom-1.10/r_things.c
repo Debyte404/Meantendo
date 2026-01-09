@@ -296,7 +296,7 @@ int		newvissprite;
 // R_InitSprites
 // Called at program start.
 //
-void R_InitSprites (char** namelist)
+void R_InitSprites (const char** namelist)
 {
     int		i;
 	

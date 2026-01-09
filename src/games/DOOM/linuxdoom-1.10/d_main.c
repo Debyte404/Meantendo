@@ -45,6 +45,19 @@ static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#ifndef R_OK
+#define R_OK 4
+#endif
+
+#ifndef F_OK
+#define F_OK 0
+#endif
+
+// Depending on toolchain, access/mkdir might be missing from headers
+// even if linked in standard libraries.
+int access(const char *pathname, int mode);
+int mkdir(const char *path, mode_t mode);
+
 
 #include "doomdef.h"
 #include "doomstat.h"
@@ -545,7 +558,7 @@ char            title[128];
 //
 // D_AddFile
 //
-void D_AddFile (char *file)
+void D_AddFile (const char *file)
 {
     int     numwadfiles;
     char    *newfile;

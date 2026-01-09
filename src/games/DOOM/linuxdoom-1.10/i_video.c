@@ -181,8 +181,8 @@ void I_InitGraphics(void)
 {
     // Initialize display system
     // Handle in main setup usually, but we can signal init here
-    // extern void Meantendo_InitDisplay();
-    // Meantendo_InitDisplay();
+    extern void Meantendo_InitDisplay();
+    Meantendo_InitDisplay();
     
     screen_buffer = screens[0]; // DOOM engine allocates screens[0]
 }

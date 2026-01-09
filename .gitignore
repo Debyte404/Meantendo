@@ -1,0 +1,40 @@
+# PlatformIO
+.pio
+.pioenvs
+.piolibdeps
+.project
+.classpath
+
+# VS Code
+.vscode/
+
+# Espressif ESP-IDF
+sdkconfig
+!sdkconfig.defaults
+build/
+dependencies.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS / System
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# C/C++
+*.o
+*.a
+*.elf
+*.bin
+*.map
+*.hex
+
+# Archives
+*.zip
+*.tar
+*.gz
+*.rar

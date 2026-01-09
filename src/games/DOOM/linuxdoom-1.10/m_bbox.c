@@ -33,11 +33,7 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 #endif
 #include "m_bbox.h"
 
-#ifdef ESP32
-#include "esp32_values.h"
-#else
-#include <values.h>
-#endif
+
 
 
 

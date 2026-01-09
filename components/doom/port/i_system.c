@@ -81,11 +81,17 @@ void I_Quit(void) {
     M_SaveDefaults();
     I_ShutdownGraphics();
     
-    ESP_LOGI(TAG, "DOOM Quit");
-    // TODO: Return to menu instead of exit
-    // For now, we just stop the task? 
-    // This function is usually called on exit(0)
-    vTaskDelete(NULL);
+    ESP_LOGI(TAG, "DOOM Quit. Rebooting...");
+    
+    // Display quit message (visual confirmation)
+    display_fill_screen(0x0000); // Black
+    display_set_cursor(40, 60);
+    display_set_text_color(0xF800, 0x0000); // Red
+    display_print("REBOOTING...");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    esp_restart();
+    vTaskDelete(NULL); // Should not reach here
 }
 
 void I_WaitVBL(int count) {
@@ -116,7 +122,18 @@ void I_Error(char *error, ...) {
     // D_QuitNetGame();
     // I_ShutdownGraphics();
     
-    // Reboot? Or stick?
     ESP_LOGE(TAG, "System Halted.");
+    
+    display_fill_screen(0xF800); // Red screen of death
+    display_set_text_color(0xFFFF, 0xF800);
+    display_set_cursor(10, 10);
+    display_print("DOOM ERROR:");
+    display_set_cursor(10, 25);
+    // Print first 20 chars of error
+    display_print("See LOGS");
+    
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    esp_restart();
+    
     while(1) { vTaskDelay(1000); }
 }

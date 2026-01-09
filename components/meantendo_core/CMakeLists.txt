@@ -3,9 +3,14 @@ idf_component_register(
         "src/game_registry.c"
         "src/menu.c"
         "src/splash.c"
+        "src/sd_card.c"
     INCLUDE_DIRS 
         "include"
     REQUIRES 
+        esp_partition
+        driver
+        sdmmc
+        fatfs
         meantendo_display
         meantendo_input
 )

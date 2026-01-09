@@ -38,6 +38,16 @@ extern "C" {
 #define DISPLAY_PIN_RST         17
 #define DISPLAY_PIN_BL          -1      // Backlight pin (-1 = always on)
 
+// SD Card Configuration
+#define SD_SPI_HOST             SPI3_HOST // VSPI
+#define SD_MOUNT_POINT          "/sd"
+
+// SD Card Pins (VSPI Default)
+#define SD_PIN_MISO             19
+#define SD_PIN_MOSI             23
+#define SD_PIN_CLK              18
+#define SD_PIN_CS               22    // Separate CS for SD
+
 // SPI Settings
 #define DISPLAY_SPI_HOST        SPI2_HOST
 #define DISPLAY_SPI_FREQ_HZ     40000000    // 40 MHz

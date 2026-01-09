@@ -7,29 +7,37 @@
 
 **The Ultimate Open Source ESP32 Gaming Console**
 
-Meantendo is a high-performance, feature-rich gaming platform built on the ESP32 ecosystem. It combines nostalgic gaming with modern embedded features like Over-The-Air (OTA) updates, a responsive Web UI, and a robust plugin system.
+Meantendo is a high-performance, feature-rich gaming platform built on the ESP32 ecosystem. It combines nostalgic gaming with modern embedded features like **Advanced Over-The-Air (OTA) updates**, a beautiful **Web UI**, and a robust **Component-based Architecture**.
 
-## ✨ Features
+## ✨ Key Features
 
 - **🚀 High Performance**: Optimized C++ engine running on ESP32/ESP32-S3 dual-core processors.
-- **📡 Advanced OTA System**: 
-  - Seamless firmware updates over WiFi.
-  - Interactive Web User Interface for management.
-  - A/B Partitioning with automatic rollback protection.
+- **📡 Hyper-Advanced OTA System**: 
+  - **GitHub Releases Integration**: Automatically fetch updates from your repo.
+  - **Web Dashboard**: Manage firmware via a beautiful responsive Web UI (`src/ota/README.md`).
+  - **Safe Rollbacks**: A/B Partitioning ensures you never brick your device.
+- **🧱 Component Architecture**: Modular design separating Core, Display, Input, and Games.
+- **😈 Native DOOM Port**: Experimental support for running DOOM as a native ESP-IDF component.
 - **🎨 Vibrant Graphics**: Driver support for ST7735 and ST7789 displays with high-speed SPI.
 - **💾 Save States**: Persistent save data storage using NVS and LittleFS.
-- **🎮 Game Library**: Modular game system allowing easy addition of new titles.
-- **🔊 Audio Engine**: PWM and I2S audio support for immersive sound effects.
+- **🤖 Robust CI/CD**: Automated builds, testing, and release generation via GitHub Actions.
 
-## 🛠️ Hardware Requirements
+## 🕹️ Supported Games
 
-| Component | Recommendation | Notes |
-|-----------|----------------|-------|
-| **MCU** | ESP32 or ESP32-S3 | Modules like WROOM-32 or mini dev boards |
-| **Display** | 1.8" TFT (ST7735) or 1.3" IPS (ST7789) | SPI Interface required |
-| **Input** | 6x Tactile Buttons | D-Pad (Up/Down/Left/Right), A, B |
-| **Power** | LiPo Battery + TP4056 | Or USB power for development |
-| **Audio** | Piezo Buzzer or MAX98357A | Optional but recommended |
+- **� Snake**: The classic arcade game.
+- **🏓 Pong**: Two-player competitive paddle game.
+- **💀 DOOM**: (Experimental) The legendary FPS running natively.
+
+## 🛠️ Hardware & Build Guide
+
+Want to build your own? We have a comprehensive guide for you!
+
+👉 **[Read the Official Build Guide](docs/BUILD_GUIDE.md)**
+
+**Quick Specs:**
+- **MCU**: ESP32 or ESP32-S3
+- **Display**: 1.8" TFT (ST7735)
+- **Input**: 6 Tactile Buttons
 
 ## 🚀 Installation & Setup
 
@@ -48,11 +56,13 @@ cd Meantendo
 
 1. Connect your ESP32 device via USB.
 2. Open the project in PlatformIO.
-3. Select your environment (e.g., `esp32dev`) in the status bar.
-4. Click the **Upload** button (➡️) in the PlatformIO toolbar.
+3. Select your environment (e.g., `esp32dev` or `esp32s3`).
+4. **Upload Filesystem Image** (Important for Web UI assets!): `PlatformIO > Project Tasks > Platform > Upload Filesystem Image`.
+5. Click **Upload** (➡️) to flash the firmware.
 
 ```bash
 # Or via terminal
+pio run -t uploadfs
 pio run -t upload
 ```
 
@@ -66,21 +76,19 @@ pio run -t upload
 
 ### Web Interface (OTA)
 
-1. Connect the Meantendo to your WiFi (configure in `src/config.h` or via AP mode).
+1. Connect the Meantendo to your WiFi (configure via the "WiFi Config" menu item).
 2. Navigate to `http://meantendo.local` (or the IP address shown on screen).
-3. Drag and drop `.bin` firmware files to update wirelessly!
+3. Drag and drop `.bin` firmware files or check for online updates!
 
 ## 🤝 Contributing
 
-We welcome contributions! Whether it's adding a new game, fixing a bug, or improving documentation, please check out our [Contributing Guide](CONTRIBUTING.md).
+We welcome contributions! Please check out our [Contributing Guide](CONTRIBUTING.md).
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-Please review our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
 ## 📜 License
 

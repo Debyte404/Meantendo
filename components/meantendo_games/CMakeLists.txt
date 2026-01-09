@@ -3,10 +3,15 @@ idf_component_register(
         "src/snake.c"
         "src/pong.c"
         "src/seal_life.c"
+        "src/doom_game.c"
     INCLUDE_DIRS 
         "include"
     REQUIRES 
         meantendo_core
         meantendo_display
         meantendo_input
+        doom
+        esp_partition
+        fatfs
+        spiffs
 )

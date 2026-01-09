@@ -38,6 +38,15 @@ rcsid[] = "$Id: w_wad.c,v 1.5 1997/02/03 16:47:57 b1 Exp $";
 #define O_BINARY		0
 #endif
 
+#include <string.h> // Fixes memcpy implicit declaration
+#include <fcntl.h>  // Fixes open() flags
+#include <unistd.h> // Fixes open() and close()
+
+// ROOT FIX: Handle DOS/Windows file mode flags on POSIX systems
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #include "doomtype.h"
 #include "m_swap.h"
 #include "i_system.h"

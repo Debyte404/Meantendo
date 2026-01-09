@@ -38,24 +38,24 @@ rcsid[] = "$Id: w_wad.c,v 1.5 1997/02/03 16:47:57 b1 Exp $";
 #define O_BINARY		0
 #endif
 
-#include <string.h> // Fixes memcpy implicit declaration
-#include <fcntl.h>  // Fixes open() flags
-#include <unistd.h> // Fixes open() and close()
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <ctype.h>
 
-// ROOT FIX: Handle DOS/Windows file mode flags on POSIX systems
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
 
 #include "doomtype.h"
-#include "m_swap.h"
-#include "i_system.h"
-#include "z_zone.h"
+#include <sys/stat.h>
 
 #ifdef __GNUG__
 #pragma implementation "w_wad.h"
 #endif
 #include "w_wad.h"
+
+
 
 
 
@@ -75,10 +75,7 @@ void**			lumpcache;
 
 #define strcmpi	strcasecmp
 
-void strupr (char* s)
-{
-    while (*s) { *s = toupper(*s); s++; }
-}
+
 
 int filelength (int handle) 
 { 
@@ -376,7 +373,17 @@ int W_CheckNumForName (const char* name)
     name8.s[8] = 0;
 
     // case insensitive
-    strupr (name8.s);		
+{
+	char *p = name8.s;
+	// void strupr (char* s)
+	// {
+	//     while (*s) { *s = toupper(*s); s++; }
+	// }
+	while (*p) {
+	    *p = toupper(*p);
+	    p++;
+	}
+    }
 
     v1 = name8.x[0];
     v2 = name8.x[1];

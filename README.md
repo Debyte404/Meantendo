@@ -20,8 +20,7 @@
 
 ## Demo
 
-https://github.com/Debyte404/Meantendo/blob/main/assets/earlydemo.mp4
-
+<iframe width="472" height="839" src="https://www.youtube.com/embed/cb1YR2BpdeY" title="Meantendo-earlydemo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ---
 
 ## Features

@@ -153,4 +153,4 @@ void loopPong() {
 }
 
 // === GAME DEF ===
-GameDef pongGame = { "Pong", startPong, loopPong };
+GameDef pongGame = { "Pong", startPong, loopPong, 0 };

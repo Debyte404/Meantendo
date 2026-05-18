@@ -1,12 +1,13 @@
 #pragma once
 #include <Arduino.h>
 
-#define MAX_GAMES 10
+#define MAX_GAMES 20
 
 struct GameDef {
   const char* name;
   void (*start)();
   void (*loop)();
+  uint8_t category;   // 0 = Game, 1 = Visual Demo
 };
 
 // Declare the registry

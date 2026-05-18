@@ -77,17 +77,21 @@ void loopSnake() {
   }
 
   // === Direction Input ===
-  Direction dir = readJoystickStateChange();
+  static Direction nextDir = DIR_NONE;
+  Direction c = readJoystickContinuous();
+  if (c != DIR_NONE) nextDir = c;
+
+  // Movement timing
+  if (millis() - lastMove < speed) return;
+  lastMove = millis();
+
+  Direction dir = nextDir;
 
   // Prevent 180° reverse direction in same frame
   if (dir == DIR_UP    && !(lastDirY ==  1)) { dirX = 0; dirY = -1; }
   else if (dir == DIR_DOWN  && !(lastDirY == -1)) { dirX = 0; dirY =  1; }
   else if (dir == DIR_LEFT  && !(lastDirX ==  1)) { dirX = -1; dirY = 0; }
   else if (dir == DIR_RIGHT && !(lastDirX == -1)) { dirX =  1; dirY = 0; }
-
-  // Movement timing
-  if (millis() - lastMove < speed) return;
-  lastMove = millis();
 
   Point newHead = { snake[0].x + dirX, snake[0].y + dirY };
 
@@ -131,4 +135,4 @@ void loopSnake() {
 }
 
 // === Game Definition ===
-GameDef snakeGame = { "Snake", startSnake, loopSnake };
+GameDef snakeGame = { "Snake", startSnake, loopSnake, 0 };

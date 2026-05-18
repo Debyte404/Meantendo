@@ -47,14 +47,29 @@ inline void initInput() {
 // === Joystick Continuous Read
 // =======================================================
 inline Direction readJoystickContinuous() {
-  int x = analogRead(JOY_X_PIN);
-  int y = analogRead(JOY_Y_PIN);
+  int x = analogRead(JOY_Y_PIN);
+  int y = analogRead(JOY_X_PIN);
 
   if (y < JOY_CENTER - JOY_DEADZONE) return DIR_UP;
   if (y > JOY_CENTER + JOY_DEADZONE) return DIR_DOWN;
-  if (x < JOY_CENTER - JOY_DEADZONE) return DIR_LEFT;
-  if (x > JOY_CENTER + JOY_DEADZONE) return DIR_RIGHT;
+  if (x < JOY_CENTER - JOY_DEADZONE) return DIR_RIGHT;
+  if (x > JOY_CENTER + JOY_DEADZONE) return DIR_LEFT;
   return DIR_NONE;
+}
+
+// =======================================================
+// === Joystick Analog Direct Read (for precise movement)
+// =======================================================
+inline int readJoystickAnalogX() {
+  int x = analogRead(JOY_Y_PIN);
+  if (abs(x - JOY_CENTER) < JOY_DEADZONE) return JOY_CENTER;
+  return x;
+}
+
+inline int readJoystickAnalogY() {
+  int y = analogRead(JOY_X_PIN);
+  if (abs(y - JOY_CENTER) < JOY_DEADZONE) return JOY_CENTER;
+  return y;
 }
 
 // =======================================================
@@ -70,6 +85,37 @@ inline Direction readJoystickStateChange() {
   }
 
   if (current == DIR_NONE) lastDir = DIR_NONE; // reset when released
+  return DIR_NONE;
+}
+
+// =======================================================
+// === Joystick Auto-Repeat (for menus/snake)
+// =======================================================
+inline Direction readJoystickAutoRepeat(int initialDelay = 350, int repeatDelay = 120) {
+  static Direction lastDir = DIR_NONE;
+  static unsigned long lastTime = 0;
+  static bool repeating = false;
+
+  Direction current = readJoystickContinuous();
+
+  if (current != DIR_NONE) {
+    if (current != lastDir) { // New push
+      lastDir = current;
+      lastTime = millis();
+      repeating = false;
+      return current;
+    } else { // Holding
+      unsigned long limit = repeating ? repeatDelay : initialDelay;
+      if (millis() - lastTime > limit) {
+        lastTime = millis();
+        repeating = true;
+        return current;
+      }
+    }
+  } else {
+    lastDir = DIR_NONE;
+    repeating = false;
+  }
   return DIR_NONE;
 }
 

@@ -1,42 +1,125 @@
-# Meantendo Wiring Guide
+# Meantendo — Wiring Guide
 
-This guide provides the pin connections for the Meantendo handheld console based on the **NodeMCU ESP-32S (38-pin)** development board.
+<p align="center">
+  <img src="../assets/wiring.jpeg" alt="Meantendo Wiring Diagram" width="600" />
+</p>
 
-## Pinout Summary Table
+<p align="center">
+  <em>Complete wiring diagram for the Meantendo ESP32 handheld console.</em>
+</p>
 
-| Component | Component Pin | ESP32 Pin | Logic Level |
-| :--- | :--- | :--- | :--- |
-| **TFT Display (ST7735)** | VCC | 3.3V or 5V | Power |
-| | GND | GND | Ground |
-| | LED (Backlight) | 3.3V | Backlight Power |
-| | CS | **GPIO 5** | SPI CS |
-| | DC (RS) | **GPIO 16** | Control |
-| | RESET | **GPIO 17** | Control |
-| | SCK (SCLK) | **GPIO 18** | SPI Clock |
-| | SDA (MOSI) | **GPIO 23** | SPI Data |
-| **Joystick Module** | +5V / VCC | 3.3V | Power |
-| | GND | GND | Ground |
-| | VRx | **GPIO 34** | Analog Input |
-| | VRy | **GPIO 35** | Analog Input |
-| | SW (Push) | **GPIO 19** | Digital Input |
-| **Action Buttons** | BTN A | **GPIO 32** | Digital Pullup |
-| | BTN B | **GPIO 33** | Digital Pullup |
-| | BTN X | **GPIO 26** | Digital Pullup |
-| | BTN Y | **GPIO 27** | Digital Pullup |
-| | BTN BACK | **GPIO 25** | Digital Pullup |
-| **Buzzer** | Signal (+) | **GPIO 15** | PWM Output |
-| | GND (-) | GND | Ground |
+---
+
+## Pinout Summary
+
+All connections are between the **NodeMCU ESP-32S (38-pin)** and external components.
+
+### Display — ST7735 1.8" TFT (SPI)
+
+| TFT Pin | ESP32 GPIO | Notes |
+|---|---|---|
+| VCC | 3.3V | Power |
+| GND | GND | Ground |
+| LED | 3.3V | Backlight |
+| CS | **GPIO 5** | SPI Chip Select |
+| DC | **GPIO 16** | Data/Command |
+| RESET | **GPIO 17** | Display reset |
+| SCK | **GPIO 18** | SPI Clock |
+| SDA | **GPIO 23** | SPI MOSI |
+
+### Joystick — Analog XY Module
+
+| Joystick Pin | ESP32 GPIO | Notes |
+|---|---|---|
+| VCC | 3.3V | Power |
+| GND | GND | Ground |
+| VRx | **GPIO 34** | X-axis (ADC) |
+| VRy | **GPIO 35** | Y-axis (ADC) |
+| SW | **GPIO 19** | Push button (active LOW) |
+
+### Action Buttons — 12×12mm Tactile
+
+| Button | ESP32 GPIO | Notes |
+|---|---|---|
+| A | **GPIO 32** | Main confirm |
+| B | **GPIO 33** | Back / cancel |
+| X | **GPIO 26** | Reserved |
+| Y | **GPIO 27** | Reserved |
+| Back | **GPIO 25** | Exit to menu |
+
+### Buzzer — Passive Piezo
+
+| Buzzer Pin | ESP32 GPIO | Notes |
+|---|---|---|
+| Signal (+) | **GPIO 15** | PWM tone output |
+| GND (−) | GND | Ground |
+
+---
+
+## Quick Reference
+
+```
+ESP32          ST7735 TFT
+────────       ──────────
+3.3V    ────  VCC
+GND     ────  GND
+3.3V    ────  LED
+GPIO 5  ────  CS
+GPIO 16 ────  DC
+GPIO 17 ────  RESET
+GPIO 18 ────  SCK
+GPIO 23 ────  SDA
+
+ESP32          Joystick
+────────       ────────
+3.3V    ────  VCC
+GND     ────  GND
+GPIO 34 ────  VRx
+GPIO 35 ────  VRy
+GPIO 19 ────  SW
+
+ESP32          Buttons
+────────       ───────
+GPIO 32 ────  A
+GPIO 33 ────  B
+GPIO 26 ────  X
+GPIO 27 ────  Y
+GPIO 25 ────  Back
+
+ESP32          Buzzer
+────────       ──────
+GPIO 15 ────  Signal
+GND      ────  GND
+```
+
+---
 
 ## Hardware Notes
 
-### 🕹️ Joystick Orientation
-The software (`Input.hpp`) assumes a center value of `2048` for the analog sticks. If your joystick axes are swapped or inverted, you can adjust the logic in `readJoystickContinuous()` in `src/core/Input.hpp`.
+### Joystick Calibration
 
-### 🔘 Button Wiring
-Buttons should be wired between the **ESP32 GPIO** and **GND**. The ESP32's internal pull-up resistors are enabled in `initInput()`, so no external resistors are required. A press is recorded when the pin is pulled `LOW`.
+The software uses a center value of `2048` (12-bit ADC). Deadzone is ±400. If your joystick axes are inverted or swapped, edit `readJoystickContinuous()` in `src/core/Input.hpp`.
 
-### 📺 Display Voltage
-Most ST7735 modules have a 3.3V regulator. You can safely power it from the ESP32's `3V3` pin. If using the `5V` (Vin) pin, ensure your module supports that voltage.
+### Button Pull-ups
 
-### 🔊 Buzzer Type
-The code uses `ledcWriteTone` for the buzzer (`Buzzer.cpp`). It is best used with a **Passive** buzzer for various tones, though an **Active** buzzer will still function (but won't be able to change pitch as effectively).
+All buttons use the ESP32's internal pull-up resistors — no external resistors needed. Each button is wired between the GPIO pin and GND. A press reads as `LOW`.
+
+### Display Voltage
+
+Most ST7735 modules have an onboard 3.3V regulator. Safe to power from the ESP32's `3V3` pin. **Do not** connect `5V` unless your module explicitly supports it.
+
+### Upload Note
+
+> **Important:** Unplug the TFT's CS wire (GPIO 5) before uploading firmware via USB, then reconnect it. The display can interfere with SPI programming.
+
+### Buzzer
+
+The code uses `ledcWriteTone()` for pitch control — a **passive buzzer** produces tones; an active buzzer will still work but only at one pitch.
+
+---
+
+## Wiring Photo
+
+<p align="center">
+  <img src="../assets/wiring.jpeg" alt="Physical wiring of Meantendo" width="600" />
+</p>

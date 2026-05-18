@@ -1,7 +1,7 @@
 # Meantendo
 
 <p align="center">
-  <img src="docs/product.jpeg" alt="Meantendo Console" width="600" />
+  <img src="assets/product.jpeg" alt="Meantendo Console" width="600" />
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 ## Demo
 
-https://github.com/user/Meantendo/assets/placeholder/earlydemo.mp4
+https://github.com/Debyte404/Meantendo/blob/main/assets/earlydemo.mp4
 
 ---
 
@@ -110,12 +110,13 @@ Meantendo/
 │       ├── Particles.cpp
 │       ├── Fractals.cpp
 │       └── SlimeSim.cpp
+├── assets/           # Product photos, demo video
+│   ├── product.jpeg
+│   ├── wiring.jpeg
+│   └── earlydemo.mp4
 ├── docs/
 │   ├── BOM.md            # Bill of materials
-│   ├── wiring_guide.md   # Pinout and wiring diagram
-│   ├── product.jpeg       # Product photo
-│   ├── wiring.jpeg       # Wiring diagram photo
-│   └── earlydemo.mp4     # Demo video
+│   └── wiring_guide.md   # Pinout and wiring diagram
 ├── include/              # Header files
 ├── test/                 # Unit tests
 ├── platformio.ini        # Build configuration

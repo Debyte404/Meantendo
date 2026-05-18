@@ -1,7 +1,7 @@
 # Meantendo — Bill of Materials
 
 <p align="center">
-  <img src="product.jpeg" alt="Meantendo Assembled" width="500" />
+  <img src="../assets/product.jpeg" alt="Meantendo Assembled" width="500" />
 </p>
 
 > **Total estimated cost:** ₹800–₹1,200 on Robu.in / Robocraze

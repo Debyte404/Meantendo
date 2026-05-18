@@ -1,7 +1,7 @@
 # Meantendo — Wiring Guide
 
 <p align="center">
-  <img src="../assets/wiring.jpeg" alt="Meantendo Wiring Diagram" width="600" />
+  <!-- <img src="../assets/wiring.jpeg" alt="Meantendo Wiring Diagram" width="600" /> -->
 </p>
 
 <p align="center">

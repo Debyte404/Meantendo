@@ -20,7 +20,7 @@
 
 ## Demo
 
-https://github.com/Debyte404/Meantendo/blob/main/assets/earlydemo.mp4
+[![Meantendo Demo](https://img.youtube.com/vi/cb1YR2BpdeY/0.jpg)](https://www.youtube.com/shorts/cb1YR2BpdeY)
 
 ---
 
@@ -110,10 +110,9 @@ Meantendo/
 │       ├── Particles.cpp
 │       ├── Fractals.cpp
 │       └── SlimeSim.cpp
-├── assets/           # Product photos, demo video
+├── assets/           # Product photos
 │   ├── product.jpeg
-│   ├── wiring.jpeg
-│   └── earlydemo.mp4
+│   └── wiring.jpeg
 ├── docs/
 │   ├── BOM.md            # Bill of materials
 │   └── wiring_guide.md   # Pinout and wiring diagram

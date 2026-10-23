@@ -320,109 +320,75 @@ bool performOtaUpdate(const String& downloadUrl, size_t expectedSize, OtaProgres
         return false;
     }
 
-    String currentUrl = downloadUrl;
-    String finalUrl = downloadUrl;
+    Serial.printf("[OTA] Initializing OTA stream from: %s\n", downloadUrl.c_str());
 
-    // Phase 1: Resolve redirects cleanly with dedicated TLS handshakes
-    for (int redirectCount = 0; redirectCount < 3; redirectCount++) {
-        WiFiClientSecure probeClient;
-        probeClient.setInsecure();
+    WiFiClientSecure client;
+    client.setInsecure();
 
-        HTTPClient probeHttp;
-        probeHttp.setTimeout(15000);
-        const char* headerKeys[] = {"Location"};
-        probeHttp.collectHeaders(headerKeys, 1);
+    HTTPClient http;
+    http.setTimeout(30000);
+    http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+    http.setReuse(true);
 
-        Serial.printf("[OTA] Probing URL: %s\n", currentUrl.c_str());
-        probeHttp.begin(probeClient, currentUrl);
-        probeHttp.setUserAgent("Meantendo-Console-OTA");
-
-        int probeCode = probeHttp.GET();
-        Serial.printf("[OTA] Probe status: %d\n", probeCode);
-
-        if (probeCode == 301 || probeCode == 302 || probeCode == 307) {
-            String redirectTarget = probeHttp.header("Location");
-            probeHttp.end();
-            probeClient.stop();
-            if (redirectTarget.length() > 0) {
-                currentUrl = redirectTarget;
-                finalUrl = redirectTarget;
-                Serial.printf("[OTA] Following redirect -> %s\n", finalUrl.c_str());
-                continue;
-            }
-        } else if (probeCode == 200) {
-            // Found direct target
-            finalUrl = currentUrl;
-            probeHttp.end();
-            probeClient.stop();
-            break;
-        } else {
-            probeHttp.end();
-            probeClient.stop();
-            break;
-        }
-    }
-
-    // Phase 2: Stream firmware from final URL
-    WiFiClientSecure downloadClient;
-    downloadClient.setInsecure();
-
-    HTTPClient downloadHttp;
-    downloadHttp.setTimeout(30000);
-
-    Serial.printf("[OTA] Downloading payload from: %s\n", finalUrl.c_str());
-    downloadHttp.begin(downloadClient, finalUrl);
-    downloadHttp.setUserAgent("Meantendo-Console-OTA");
-
-    int httpCode = downloadHttp.GET();
-    if (httpCode != 200) {
-        lastOtaErrorMsg = "HTTP " + String(httpCode);
-        Serial.printf("[OTA] Download failed: HTTP %d\n", httpCode);
-        downloadHttp.end();
+    if (!http.begin(client, downloadUrl)) {
+        lastOtaErrorMsg = "HTTP.begin failed";
+        Serial.println("[OTA] HTTP.begin failed");
         return false;
     }
 
-    int contentLength = downloadHttp.getSize();
+    http.setUserAgent("Meantendo-Console-OTA");
+
+    int httpCode = http.GET();
+    Serial.printf("[OTA] GET response: %d\n", httpCode);
+
+    if (httpCode != 200) {
+        lastOtaErrorMsg = "HTTP " + String(httpCode);
+        Serial.printf("[OTA] Download failed: HTTP %d\n", httpCode);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
     Serial.printf("[OTA] Content-Length: %d bytes\n", contentLength);
 
     if (contentLength <= 0) {
         lastOtaErrorMsg = "Zero Content-Length";
-        downloadHttp.end();
+        http.end();
         return false;
     }
 
     if (contentLength > 1310720) {
         lastOtaErrorMsg = "Size " + String(contentLength) + " > 1.25MB";
-        Serial.printf("[OTA] Firmware binary too large for partition: %d bytes\n", contentLength);
-        downloadHttp.end();
+        Serial.printf("[OTA] Firmware binary too large: %d bytes\n", contentLength);
+        http.end();
         return false;
     }
 
     if (!Update.begin(contentLength)) {
         lastOtaErrorMsg = "Update.begin err " + String(Update.getError());
         Serial.printf("[OTA] Update.begin failed: %s\n", lastOtaErrorMsg.c_str());
-        downloadHttp.end();
+        http.end();
         return false;
     }
 
-    WiFiClient* stream = downloadHttp.getStreamPtr();
+    WiFiClient* stream = http.getStreamPtr();
     uint8_t buff[1024];
     size_t writtenTotal = 0;
     int lastPercent = -1;
     unsigned long lastDataTime = millis();
 
-    while (downloadHttp.connected() && (writtenTotal < (size_t)contentLength)) {
+    while (http.connected() && (writtenTotal < (size_t)contentLength)) {
         size_t availableBytes = stream->available();
         if (availableBytes > 0) {
             lastDataTime = millis();
             size_t bytesToRead = availableBytes < sizeof(buff) ? availableBytes : sizeof(buff);
-            int readBytes = stream->readBytes(buff, bytesToRead);
+            int readBytes = stream->read(buff, bytesToRead);
             if (readBytes > 0) {
                 size_t written = Update.write(buff, readBytes);
                 if (written != (size_t)readBytes) {
-                    lastOtaErrorMsg = "Flash write error";
+                    lastOtaErrorMsg = "Flash write err " + String(Update.getError());
                     Update.abort();
-                    downloadHttp.end();
+                    http.end();
                     return false;
                 }
                 writtenTotal += readBytes;
@@ -436,17 +402,18 @@ bool performOtaUpdate(const String& downloadUrl, size_t expectedSize, OtaProgres
                 }
             }
         } else {
-            if (millis() - lastDataTime > 15000) {
+            if (millis() - lastDataTime > 20000) {
                 lastOtaErrorMsg = "Stream timeout";
                 Update.abort();
-                downloadHttp.end();
+                http.end();
                 return false;
             }
             delay(2);
         }
+        yield();
     }
 
-    downloadHttp.end();
+    http.end();
 
     if (writtenTotal != (size_t)contentLength) {
         lastOtaErrorMsg = "Incomplete (" + String(writtenTotal) + "/" + String(contentLength) + ")";

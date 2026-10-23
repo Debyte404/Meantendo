@@ -7,6 +7,7 @@
 #include "Buzzer.hpp"
 #include "PowerStateEngine.hpp"
 #include "CloudUpdater.hpp"
+#include "Config.hpp"
 
 // ═══════════════════════════════════════════════════════════
 //  Meantendo Menu System — "Passion Project" Edition
@@ -104,9 +105,11 @@ static void drawHeader() {
 
   // Version tag
   tft.setTextSize(1);
-  tft.setTextColor(tft.color565(80, 80, 80));
-  tft.setCursor(tft.width() - 20, 11);
-  tft.print("v2");
+  tft.setTextColor(tft.color565(100, 150, 210));
+  int verLen = strlen(MEANTENDO_VERSION);
+  int xVer = tft.width() - (verLen * 6) - 4;
+  tft.setCursor(xVer, 11);
+  tft.print(MEANTENDO_VERSION);
 }
 
 static void drawFooter() {

@@ -41,6 +41,7 @@ extern GameDef conwayGame;
 extern GameDef systemLabApp;
 extern GameDef wirelessPadApp;
 extern GameDef wifiUpdaterApp;
+extern GameDef bluetoothPadApp;
 extern GameDef kaleidoscopeDemo;
 extern GameDef matrixDemo;
 extern GameDef mazeDemo;
@@ -125,6 +126,7 @@ void setup() {
   registerGame(&systemLabApp);
   registerGame(&wirelessPadApp);
   registerGame(&wifiUpdaterApp);
+  registerGame(&bluetoothPadApp);
   registerGame(&kaleidoscopeDemo);
   registerGame(&matrixDemo);
   registerGame(&mazeDemo);

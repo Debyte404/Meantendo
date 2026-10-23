@@ -60,8 +60,6 @@ static volatile unsigned long lastP1PacketTime = 0;
 
 // Active Modes
 static bool autoBotMode = true; // Auto-Bot is ON by default so P2 plays immediately
-static int initialAdcX = 0;
-static int initialAdcY = 0;
 
 static uint16_t calcChecksum(const MeantendoTelemetry &pkt) {
     const uint8_t *bytes = reinterpret_cast<const uint8_t*>(&pkt);
@@ -99,10 +97,6 @@ void setup() {
     Serial.println("\n╔══════════════════════════════════════════════════════════════════╗");
     Serial.println("║   MEANTENDO COMPANION — TRUE P2P MULTIPLAYER PEER NODE          ║");
     Serial.println("╚══════════════════════════════════════════════════════════════════╝");
-
-    // Sample initial ADC to ignore floating pins if no real joystick is attached
-    initialAdcX = analogRead(PIN_JOY_X);
-    initialAdcY = analogRead(PIN_JOY_Y);
 
     // 1. Direct Wi-Fi Station Mode on Channel 1
     WiFi.mode(WIFI_STA);
@@ -144,18 +138,19 @@ void loop() {
         switch (c) {
             case 'w': case 'W':
                 autoBotMode = false;
-                p2JoyY = max(200, p2JoyY - 600);
-                Serial.println("[INPUT] Manual UP (W) -> P2 Paddle moved UP");
+                p2JoyY = max(0, p2JoyY - 500);
+                Serial.printf("[INPUT] Manual UP (W) -> P2 JoyY = %d\n", p2JoyY);
                 break;
             case 's': case 'S':
                 autoBotMode = false;
-                p2JoyY = min(3895, p2JoyY + 600);
-                Serial.println("[INPUT] Manual DOWN (S) -> P2 Paddle moved DOWN");
+                p2JoyY = min(4095, p2JoyY + 500);
+                Serial.printf("[INPUT] Manual DOWN (S) -> P2 JoyY = %d\n", p2JoyY);
                 break;
-            case 'a': case 'A': p2JoyX = max(200, p2JoyX - 600); break;
-            case 'd': case 'D': p2JoyX = min(3895, p2JoyX + 600); break;
+            case 'a': case 'A': p2JoyX = max(0, p2JoyX - 500); break;
+            case 'd': case 'D': p2JoyX = min(4095, p2JoyX + 500); break;
             case ' ':
                 p2JoyX = 2048; p2JoyY = 2048; p2Buttons = 0;
+                Serial.println("[INPUT] Center Paddle");
                 break;
             case 'b': case 'B':
                 autoBotMode = !autoBotMode;
@@ -166,23 +161,14 @@ void loop() {
         }
     }
 
-    // 2. Physical joystick check (only if values deviate significantly from initial float)
-    int curAdcX = analogRead(PIN_JOY_X);
-    int curAdcY = analogRead(PIN_JOY_Y);
-    if (abs(curAdcX - initialAdcX) > 400 || abs(curAdcY - initialAdcY) > 400) {
-        autoBotMode = false;
-        p2JoyX = 4095 - curAdcY;
-        p2JoyY = curAdcX;
-    }
-
-    // 3. Auto-Bot AI — Tracks Pong Ball dynamically!
+    // 2. Auto-Bot AI — Tracks Pong Ball dynamically!
     if (autoBotMode) {
         if (p1GameId == 1) { // In Pong match
-            // Map 0-128 ball Y to 0-4095 joystick range
-            int targetJoyY = map(p1BallY, 10, 118, 400, 3695);
-            // Move smoothly towards target
+            // Paddle is 20px tall, court is y=10 to y=108
+            int targetPaddleY = constrain((int)p1BallY - 8, 10, 108);
+            int targetJoyY = map(targetPaddleY, 10, 108, 0, 4095);
             int diff = targetJoyY - p2JoyY;
-            p2JoyY += constrain(diff, -180, 180);
+            p2JoyY += constrain(diff, -300, 300);
         } else {
             // General idle wandering when not in Pong
             float angle = (millis() % 2000) * (2.0f * 3.14159f / 2000.0f);

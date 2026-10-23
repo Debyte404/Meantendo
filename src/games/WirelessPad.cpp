@@ -61,12 +61,14 @@ static void loopWirelessPad() {
 
     // Redraw stick cursor if moved
     if (dotX != lastX || dotY != lastY) {
-        tft.fillCircle(lastX, lastY, 4, ST77XX_BLACK);
-        // Redraw crosshair lines inside box
+        // Clear interior safely
+        tft.fillRect(11, 37, 48, 48, ST77XX_BLACK);
+        // Redraw box boundary & crosshair lines cleanly
+        tft.drawRoundRect(10, 36, 50, 50, 6, tft.color565(60, 60, 90));
         tft.drawFastHLine(10, 61, 50, tft.color565(40, 40, 60));
         tft.drawFastVLine(35, 36, 50, tft.color565(40, 40, 60));
 
-        tft.fillCircle(dotX, dotY, 4, tft.color565(255, 200, 0));
+        tft.fillCircle(dotX, dotY, 3, tft.color565(255, 200, 0));
         lastX = dotX;
         lastY = dotY;
     }

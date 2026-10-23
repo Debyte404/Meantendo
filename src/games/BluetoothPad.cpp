@@ -14,14 +14,13 @@ extern Adafruit_ST7735 tft;
 // ═══════════════════════════════════════════════════════════
 
 static BleGamepad bleGamepad("Meantendo Pad", "Debyte", 100);
-static bool bleActive = false;
+static bool bleStarted = false;
 static bool wasConnected = false;
-static unsigned long entryTime = 0;
 
 static void drawBlePadFrame() {
     tft.fillScreen(ST77XX_BLACK);
 
-    // Header bar
+    // Header bar (Height 16)
     tft.fillRect(0, 0, tft.width(), 16, tft.color565(20, 25, 45));
     tft.drawFastHLine(0, 16, tft.width(), tft.color565(0, 200, 255));
     tft.setTextColor(tft.color565(0, 220, 255));
@@ -30,7 +29,8 @@ static void drawBlePadFrame() {
     tft.print("BLUETOOTH GAMEPAD");
 
     tft.setTextColor(tft.color565(120, 140, 180));
-    tft.setCursor(120, 4);
+    int verLen = (int)strlen(MEANTENDO_VERSION);
+    tft.setCursor(tft.width() - (verLen * 6) - 4, 4);
     tft.print(MEANTENDO_VERSION);
 
     // Device Name Tag
@@ -51,59 +51,64 @@ static void drawBlePadFrame() {
     tft.print("HID BUTTONS:");
 
     // Footer
-    tft.fillRect(0, tft.height() - 12, tft.width(), 12, tft.color565(15, 15, 25));
-    tft.drawFastHLine(0, tft.height() - 12, tft.width(), tft.color565(50, 50, 70));
+    tft.fillRect(0, tft.height() - 13, tft.width(), 13, tft.color565(15, 15, 25));
+    tft.drawFastHLine(0, tft.height() - 13, tft.width(), tft.color565(50, 50, 70));
     tft.setTextColor(tft.color565(150, 160, 180));
-    tft.setCursor(12, tft.height() - 9);
-    tft.print("Press BACK to Disconnect");
+    tft.setCursor(26, tft.height() - 9);
+    tft.print("BACK: Exit Gamepad");
 }
 
 static void startBluetoothPad() {
-    bleActive = true;
+    if (!bleStarted) {
+        BleGamepadConfiguration bleConfig;
+        bleConfig.setAutoReport(false);
+        bleConfig.setControllerType(CONTROLLER_TYPE_GAMEPAD);
+        bleConfig.setButtonCount(16);
+        bleConfig.setWhichAxes(true, true, false, false, false, false, false, false);
+        bleConfig.setVid(0x045E); // Standard Gamepad VID
+        bleConfig.setPid(0x028E); // Standard Gamepad PID
+        bleGamepad.begin(&bleConfig);
+        bleStarted = true;
+    }
+
     wasConnected = false;
-    entryTime = millis();
-
     drawBlePadFrame();
-
-    // Start BLE Gamepad advertising
-    bleGamepad.begin();
     Buzzer::play(Buzzer::Sound::Confirm);
 }
 
 static void loopBluetoothPad() {
     bool connected = bleGamepad.isConnected();
 
-    // Connection state change audio/visual feedback
+    // Connection state change audio feedback
     if (connected != wasConnected) {
         wasConnected = connected;
-        if (connected) {
-            Buzzer::play(Buzzer::Sound::Confirm);
-        }
+        Buzzer::play(connected ? Buzzer::Sound::Confirm : Buzzer::Sound::Click);
     }
 
-    // Status Banner at y=85
-    tft.fillRect(6, 85, 148, 16, tft.color565(10, 12, 20));
+    // Status Banner at y=84 (Height 16, centered text)
+    tft.fillRect(0, 84, tft.width(), 16, ST77XX_BLACK);
     if (connected) {
-        tft.fillRoundRect(8, 86, 144, 14, 2, tft.color565(0, 150, 70));
+        tft.fillRoundRect(8, 85, 144, 14, 2, tft.color565(0, 150, 70));
         tft.setTextColor(ST77XX_WHITE);
-        tft.setCursor(18, 89);
-        tft.print("PAIRED: PC / MOBILE OK");
+        tft.setCursor(29, 88);
+        tft.print("CONNECTED TO HOST");
     } else {
         bool blink = ((millis() / 400) % 2 == 0);
-        tft.drawRoundRect(8, 86, 144, 14, 2, blink ? tft.color565(0, 200, 255) : tft.color565(50, 60, 80));
+        tft.drawRoundRect(8, 85, 144, 14, 2, blink ? tft.color565(0, 200, 255) : tft.color565(50, 60, 80));
         tft.setTextColor(blink ? tft.color565(0, 220, 255) : tft.color565(100, 120, 150));
-        tft.setCursor(14, 89);
-        tft.print("PAIR IN BLUETOOTH SETTINGS");
+        tft.setCursor(41, 88);
+        tft.print("READY TO PAIR");
     }
 
-    // Sub-text at y=103
-    tft.fillRect(6, 103, 148, 11, ST77XX_BLACK);
-    tft.setTextColor(tft.color565(120, 140, 170));
-    tft.setCursor(8, 104);
+    // Sub-text at y=102 (Height 11, centered text)
+    tft.fillRect(0, 102, tft.width(), 11, ST77XX_BLACK);
+    tft.setTextColor(tft.color565(130, 150, 180));
     if (connected) {
-        tft.print("Smart Snapback Active (0 Lag)");
+        tft.setCursor(14, 103);
+        tft.print("Zero-Lag Snapback Active");
     } else {
-        tft.print("Select 'Meantendo Pad' to connect");
+        tft.setCursor(17, 103);
+        tft.print("Search: 'Meantendo Pad'");
     }
 
     // Read analog stick (Inverted X PCB orientation + Snapback filtered)
@@ -116,8 +121,9 @@ static void loopBluetoothPad() {
     int dotX = map(filtX, 0, 4095, 12, 50);
     int dotY = map(filtY, 0, 4095, 39, 77);
 
-    // Refresh crosshair interior
-    tft.fillRect(10, 37, 42, 42, ST77XX_BLACK);
+    // Refresh crosshair interior safely
+    tft.fillRect(9, 36, 44, 44, ST77XX_BLACK);
+    tft.drawRoundRect(8, 35, 46, 46, 3, tft.color565(60, 70, 95));
     tft.drawFastHLine(10, 58, 42, tft.color565(35, 42, 60));
     tft.drawFastVLine(31, 37, 42, tft.color565(35, 42, 60));
     tft.fillCircle(dotX, dotY, 2, connected ? ST77XX_GREEN : tft.color565(0, 220, 255));

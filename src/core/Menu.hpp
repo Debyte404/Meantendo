@@ -126,21 +126,18 @@ static void drawFooter() {
 }
 
 static void drawScrollbar() {
-  if (menuItemCount <= VISIBLE_ITEMS) return;
-
   int sbX = tft.width() - 4;
   int sbTop = LIST_TOP;
   int sbHeight = LIST_BOTTOM - LIST_TOP;
-
-  tft.drawFastVLine(sbX, sbTop, sbHeight, tft.color565(30, 30, 40));
-
-  int thumbH = max(6, sbHeight * VISIBLE_ITEMS / menuItemCount);
+  tft.fillRect(sbX - 2, sbTop, 6, sbHeight, MENU_BG);
+  if (menuItemCount <= VISIBLE_ITEMS) return;
+  tft.drawFastVLine(sbX, sbTop, sbHeight, tft.color565(35, 35, 50));
+  int thumbH = max(8, sbHeight * VISIBLE_ITEMS / menuItemCount);
   int thumbY = sbTop + (sbHeight - thumbH) * scrollOffset / max(1, menuItemCount - VISIBLE_ITEMS);
-  tft.fillRect(sbX - 1, thumbY, 3, thumbH, MENU_SCROLL);
+  tft.fillRoundRect(sbX - 1, thumbY, 3, thumbH, 1, MENU_SCROLL);
 }
-
 static void drawMenuList() {
-  tft.fillRect(0, LIST_TOP, tft.width() - 5, LIST_BOTTOM - LIST_TOP, MENU_BG);
+  tft.fillRect(0, LIST_TOP, tft.width() - 6, LIST_BOTTOM - LIST_TOP, MENU_BG);
 
   int y = LIST_TOP + 2;
 

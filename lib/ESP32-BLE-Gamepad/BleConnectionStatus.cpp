@@ -20,11 +20,10 @@ void BleConnectionStatus::onConnect(NimBLEServer *pServer, NimBLEConnInfo& connI
     this->authenticatedConnHandles.insert(connInfo.getConnHandle());
     this->connected = true;
 
-    // Keep advertising so additional centrals can connect if configured
-    if (pServer->getConnectedCount() < CONFIG_BT_NIMBLE_MAX_CONNECTIONS)
+    // Stop advertising once connected to a host
+    if (pServer->getAdvertising())
     {
-        NIMBLE_LOGD(LOG_TAG, "onConnect - Restarting advertising to allow additional connections");
-        pServer->getAdvertising()->start();
+        pServer->getAdvertising()->stop();
     }
 }
 

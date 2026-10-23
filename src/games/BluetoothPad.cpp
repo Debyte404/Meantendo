@@ -97,7 +97,13 @@ static void drawBlePadFrame() {
 
 static void startBluetoothPad() {
     if (!bleStarted) {
-        bleGamepad.begin();
+        BleGamepadConfiguration bleConfig;
+        bleConfig.setAutoReport(false);
+        bleConfig.setControllerType(CONTROLLER_TYPE_GAMEPAD);
+        bleConfig.setButtonCount(16);
+        bleConfig.setWhichAxes(true, true, true, true, true, true, true, true);
+        bleConfig.setHatSwitchCount(1);
+        bleGamepad.begin(&bleConfig);
         bleStarted = true;
     } else {
         NimBLEServer* pServer = NimBLEDevice::getServer();

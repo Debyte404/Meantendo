@@ -1445,7 +1445,7 @@ void BleGamepad::sendGenericReport()
   #endif
 
   this->inputGamepad->setValue(m, sizeof(m));
-  this->inputGamepad->notify();
+  this->inputGamepad->notify(m, sizeof(m));
 }
 
 void BleGamepad::press(uint8_t b)

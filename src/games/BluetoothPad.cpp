@@ -73,7 +73,7 @@ static void drawBlePadFrame() {
     // Device Name Tag
     tft.setTextColor(tft.color565(200, 210, 230));
     tft.setCursor(8, 22);
-    tft.print("ID: 'Xbox Controller'");
+    tft.print("ID: 'Meantendo Pad'");
 
     // Joystick Radar Box (x: 8, y: 35, w: 46, h: 46)
     tft.drawRoundRect(8, 35, 46, 46, 3, tft.color565(60, 70, 95));
@@ -98,7 +98,6 @@ static void drawBlePadFrame() {
 static void startBluetoothPad() {
     if (!bleStarted) {
         BleGamepadConfiguration bleConfig;
-        bleConfig.setGamepadMode(GamepadMode::XInputSeriesX);
         bleConfig.setAutoReport(false);
         bleGamepad.begin(&bleConfig);
         bleStarted = true;
@@ -150,8 +149,8 @@ static void loopBluetoothPad() {
         tft.setCursor(14, 103);
         tft.print("Zero-Lag Snapback Active");
     } else {
-        tft.setCursor(14, 103);
-        tft.print("Search: 'Xbox Controller'");
+        tft.setCursor(17, 103);
+        tft.print("Search: 'Meantendo Pad'");
     }
 
     // Read analog stick (Inverted X PCB orientation + Snapback filtered)

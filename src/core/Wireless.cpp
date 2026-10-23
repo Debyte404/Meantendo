@@ -44,6 +44,7 @@ bool init() {
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
 
+    esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
     esp_wifi_set_max_tx_power(78); // ~19.5 dBm
 
     if (esp_now_init() != ESP_OK) {

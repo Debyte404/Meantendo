@@ -1,84 +1,119 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_now.h>
-#include <WebServer.h>
-#include <WebSocketsServer.h>
-#include <cmath>
+#include <esp_wifi.h>
 
 // ═══════════════════════════════════════════════════════════
-//  Meantendo Companion Bridge & Multiplayer Tester Bot
-//  - Receives ESP-NOW packets from Meantendo and relays to:
-//      1. USB Serial Monitor (115200 baud)
-//      2. Local Web Arcade Platform via WebSockets (Port 81)
-//  - Automated Player 2 Spammer Bot (type 'b' in serial to toggle)
+//  Meantendo Companion — True Peer-to-Peer Node (Player 2)
+//  - Direct ESP-NOW on Channel 1 (Sub-2ms Deterministic Telemetry)
+//  - Two Input Modes:
+//      A) Physical Controls: Joystick on GPIO 34/35, Buttons on 32/33/26/27
+//      B) Serial Keyboard: WASD for Joystick, J/K/U/I for A/B/X/Y
+//      C) Auto-Bot Mode: Type 'b' to toggle smooth AI Player 2
+//  - Bidirectional Telemetry: Receives Player 1 inputs & sends Player 2 inputs
 // ═══════════════════════════════════════════════════════════
 
 struct __attribute__((packed)) MeantendoTelemetry {
-    uint16_t magic;      // 0xDEB0
-    uint16_t seq;        // Rolling sequence
-    int16_t  joyX;       // 0-4095
-    int16_t  joyY;       // 0-4095
-    uint8_t  buttons;    // Bitmask
-    uint8_t  battery;
-    uint16_t checksum;
+    uint16_t magic;      // 0xDEB0 signature
+    uint16_t seq;        // Rolling sequence number
+    int16_t  joyX;       // Filtered X coordinate (0-4095)
+    int16_t  joyY;       // Filtered Y coordinate (0-4095)
+    uint8_t  buttons;    // Bitfield: [0:A, 1:B, 2:X, 3:Y, 4:SELECT, 5:BACK]
+    uint8_t  battery;    // Battery / power indicator (0-100 or status)
+    uint16_t checksum;   // Simple checksum
 };
 
-// Network Services
-WebServer server(80);
-WebSocketsServer webSocket(81);
-
-// Telemetry State
-volatile uint16_t lastSeq = 0;
-volatile int16_t currentX = 2048;
-volatile int16_t currentY = 2048;
-volatile uint8_t currentButtons = 0;
-volatile uint32_t totalPacketsRecv = 0;
-volatile bool newDataAvailable = false;
+// GPIO Pins matching standard Meantendo wiring
+#define PIN_JOY_X   34
+#define PIN_JOY_Y   35
+#define PIN_BTN_A   32
+#define PIN_BTN_B   33
+#define PIN_BTN_X   26
+#define PIN_BTN_Y   27
+#define PIN_BTN_SEL 19
+#define PIN_BTN_BCK 25
 
 static uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-#ifdef TESTER_BOT_AUTOSTART
-static bool botSpammerActive = true;
-#else
-static bool botSpammerActive = false;
-#endif
+// Local Player 2 State
+static int16_t  p2JoyX = 2048;
+static int16_t  p2JoyY = 2048;
+static uint8_t  p2Buttons = 0;
+static uint16_t p2Seq = 0;
+static uint32_t p2PacketsSent = 0;
 
-// Embedded HTML Dashboard
-extern const char INDEX_HTML[] PROGMEM;
+// Remote Player 1 (Meantendo Console) State
+static volatile int16_t  p1JoyX = 2048;
+static volatile int16_t  p1JoyY = 2048;
+static volatile uint8_t  p1Buttons = 0;
+static volatile uint16_t p1Seq = 0;
+static volatile uint32_t p1PacketsRecv = 0;
+static volatile unsigned long lastP1PacketTime = 0;
 
-// ── ESP-NOW Callback ──────────────────────────────────────
-void onDataRecv(const uint8_t *mac, const uint8_t *data, int len) {
+// Operational Modes
+static bool autoBotMode = false;
+static bool hasPhysicalControls = false;
+
+static uint16_t calcChecksum(const MeantendoTelemetry &pkt) {
+    const uint8_t *bytes = reinterpret_cast<const uint8_t*>(&pkt);
+    size_t len = sizeof(MeantendoTelemetry) - sizeof(uint16_t);
+    uint16_t sum = 0xAA55;
+    for (size_t i = 0; i < len; i++) {
+        sum = (sum << 1) ^ bytes[i];
+    }
+    return sum;
+}
+
+// ── ESP-NOW Receive Callback ──────────────────────────────
+void onDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
     if (len != sizeof(MeantendoTelemetry)) return;
-
-    const MeantendoTelemetry *pkt = reinterpret_cast<const MeantendoTelemetry*>(data);
+    const MeantendoTelemetry *pkt = reinterpret_cast<const MeantendoTelemetry*>(incomingData);
     if (pkt->magic != 0xDEB0) return;
 
-    lastSeq = pkt->seq;
-    currentX = pkt->joyX;
-    currentY = pkt->joyY;
-    currentButtons = pkt->buttons;
-    totalPacketsRecv++;
-    newDataAvailable = true;
+    p1JoyX = pkt->joyX;
+    p1JoyY = pkt->joyY;
+    p1Buttons = pkt->buttons;
+    p1Seq = pkt->seq;
+    p1PacketsRecv++;
+    lastP1PacketTime = millis();
 }
 
 void setup() {
     Serial.begin(115200);
     delay(500);
-    Serial.println("\n╔══════════════════════════════════════════╗");
-    Serial.println("║    MEANTENDO COMPANION & TEST BOT        ║");
-    Serial.println("╚══════════════════════════════════════════╝");
 
-    // 1. Wi-Fi SoftAP Mode on Channel 1
-    WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP("Meantendo-Arcade", "12345678", 1);
-    IPAddress apIP = WiFi.softAPIP();
+    Serial.println("\n╔═══════════════════════════════════════════════════════╗");
+    Serial.println("║   MEANTENDO COMPANION — PEER CONSOLE / CONTROLLER 2   ║");
+    Serial.println("╚═══════════════════════════════════════════════════════╝");
 
-    Serial.printf("[OK] SoftAP 'Meantendo-Arcade' started\n");
-    Serial.printf("[OK] Dashboard URL: http://%s/\n", apIP.toString().c_str());
+    // Initialize physical GPIOs with pullups
+    pinMode(PIN_BTN_A, INPUT_PULLUP);
+    pinMode(PIN_BTN_B, INPUT_PULLUP);
+    pinMode(PIN_BTN_X, INPUT_PULLUP);
+    pinMode(PIN_BTN_Y, INPUT_PULLUP);
+    pinMode(PIN_BTN_SEL, INPUT_PULLUP);
+    pinMode(PIN_BTN_BCK, INPUT_PULLUP);
+
+    // Check if analog joystick appears to be wired (resting near ~2048 +/- 1200)
+    int testX = analogRead(PIN_JOY_X);
+    int testY = analogRead(PIN_JOY_Y);
+    if (testX > 500 && testX < 3500 && testY > 500 && testY < 3500) {
+        hasPhysicalControls = true;
+        Serial.printf("[HW] Physical Joystick Detected! (X=%d, Y=%d)\n", testX, testY);
+    } else {
+        hasPhysicalControls = false;
+        Serial.println("[HW] No physical joystick detected; Serial Keyboard active!");
+    }
+
+    // 1. Direct Wi-Fi Station Mode on Channel 1
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
+    esp_wifi_set_max_tx_power(78); // ~19.5 dBm
 
     // 2. Init ESP-NOW
     if (esp_now_init() != ESP_OK) {
-        Serial.println("[ERR] ESP-NOW Init Failed!");
+        Serial.println("[ERR] ESP-NOW initialization failed!");
     } else {
         esp_now_register_recv_cb(onDataRecv);
 
@@ -86,205 +121,112 @@ void setup() {
         memcpy(peerInfo.peer_addr, broadcastMac, 6);
         peerInfo.channel = 1;
         peerInfo.encrypt = false;
-        esp_now_add_peer(&peerInfo);
 
-        Serial.println("[OK] ESP-NOW active on Channel 1 (TX/RX)");
+        if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+            Serial.println("[ERR] Failed to add broadcast peer!");
+        } else {
+            Serial.println("[OK] ESP-NOW initialized on Channel 1 (Peer-to-Peer)");
+        }
     }
 
-    // 3. HTTP Web Server
-    server.on("/", []() {
-        server.send_P(200, "text/html", INDEX_HTML);
-    });
-    server.begin();
-    Serial.println("[OK] HTTP Server listening on port 80");
-
-    // 4. WebSocket Server
-    webSocket.begin();
-    Serial.println("[OK] WebSocket Server listening on port 81");
-
-    if (botSpammerActive) {
-        Serial.println("\n>>> [AUTOSTART] Automated Player 2 Spammer Bot is ACTIVE! <<<");
-    } else {
-        Serial.println("\nTip: Type 'b' in Serial Monitor at any time to toggle Tester Bot mode!");
-    }
+    Serial.println("\n── CONTROLS GUIDE ──────────────────────────────────────");
+    Serial.println(" • W / S : Joystick UP / DOWN  (P2 Paddle in Pong)");
+    Serial.println(" • A / D : Joystick LEFT / RIGHT");
+    Serial.println(" • J / K : Button A / Button B");
+    Serial.println(" • U / I : Button X / Button Y");
+    Serial.println(" • SPACE : Center Joystick & Release Buttons");
+    Serial.println(" • B     : Toggle Auto-Bot (AI Player 2 Mode)");
+    Serial.println("────────────────────────────────────────────────────────\n");
 }
 
 void loop() {
-    server.handleClient();
-    webSocket.loop();
-
-    // Check serial input to toggle bot spammer
+    // 1. Handle Serial Keyboard Input
     if (Serial.available()) {
         char c = Serial.read();
-        if (c == 'b' || c == 'B') {
-            botSpammerActive = !botSpammerActive;
-            Serial.printf("\n>>> Tester Bot Mode: %s <<<\n", botSpammerActive ? "ENABLED" : "DISABLED");
+        switch (c) {
+            case 'w': case 'W': p2JoyY = max(0, p2JoyY - 600); break;
+            case 's': case 'S': p2JoyY = min(4095, p2JoyY + 600); break;
+            case 'a': case 'A': p2JoyX = max(0, p2JoyX - 600); break;
+            case 'd': case 'D': p2JoyX = min(4095, p2JoyX + 600); break;
+            case ' ':           p2JoyX = 2048; p2JoyY = 2048; p2Buttons = 0; break;
+            case 'j': case 'J': p2Buttons ^= (1 << 0); break; // Toggle A
+            case 'k': case 'K': p2Buttons ^= (1 << 1); break; // Toggle B
+            case 'u': case 'U': p2Buttons ^= (1 << 2); break; // Toggle X
+            case 'i': case 'I': p2Buttons ^= (1 << 3); break; // Toggle Y
+            case 'b': case 'B':
+                autoBotMode = !autoBotMode;
+                Serial.printf("\n>>> AUTO-BOT AI MODE: %s <<<\n\n", autoBotMode ? "ENABLED (Auto-playing P2)" : "DISABLED (Manual controls)");
+                break;
+            default: break;
         }
     }
 
-    // Automated Tester Bot: Spams smooth simulated joystick moves and buttons
-    if (botSpammerActive) {
-        static unsigned long lastBotTx = 0;
-        static uint16_t botSeq = 0;
-        if (millis() - lastBotTx >= 30) {
-            lastBotTx = millis();
-            float angle = (millis() % 3000) * (2.0f * 3.14159f / 3000.0f);
-            int simY = 2048 + (int)(1400.0f * sin(angle));
-            int simX = 2048 + (int)(1000.0f * cos(angle));
+    // 2. Read Physical Pins if available
+    if (hasPhysicalControls) {
+        p2JoyX = 4095 - analogRead(PIN_JOY_Y);
+        p2JoyY = analogRead(PIN_JOY_X);
+        p2Buttons = 0;
+        if (digitalRead(PIN_BTN_A) == LOW)   p2Buttons |= (1 << 0);
+        if (digitalRead(PIN_BTN_B) == LOW)   p2Buttons |= (1 << 1);
+        if (digitalRead(PIN_BTN_X) == LOW)   p2Buttons |= (1 << 2);
+        if (digitalRead(PIN_BTN_Y) == LOW)   p2Buttons |= (1 << 3);
+        if (digitalRead(PIN_BTN_SEL) == LOW) p2Buttons |= (1 << 4);
+        if (digitalRead(PIN_BTN_BCK) == LOW) p2Buttons |= (1 << 5);
+    }
 
-            uint8_t simBtns = 0;
-            int phase = (millis() / 400) % 4;
-            if (phase == 0) simBtns |= (1 << 0); // A
-            if (phase == 1) simBtns |= (1 << 1); // B
-            if (phase == 2) simBtns |= (1 << 2); // X
-            if (phase == 3) simBtns |= (1 << 3); // Y
+    // 3. Auto-Bot AI (Simulates human Player 2 tracking when enabled)
+    if (autoBotMode) {
+        float angle = (millis() % 2400) * (2.0f * 3.14159f / 2400.0f);
+        p2JoyY = 2048 + (int)(1500.0f * sin(angle));
+        p2JoyX = 2048 + (int)(800.0f * cos(angle));
+        int phase = (millis() / 500) % 4;
+        p2Buttons = (1 << phase);
+    }
 
-            MeantendoTelemetry botPkt;
-            botPkt.magic = 0xDEB0;
-            botPkt.seq = botSeq++;
-            botPkt.joyX = simX;
-            botPkt.joyY = simY;
-            botPkt.buttons = simBtns;
-            botPkt.battery = 99;
-            botPkt.checksum = 0;
+    // 4. Transmit Player 2 Telemetry at 60 Hz (~16ms)
+    static unsigned long lastTx = 0;
+    if (millis() - lastTx >= 16) {
+        lastTx = millis();
 
-            esp_now_send(broadcastMac, reinterpret_cast<uint8_t*>(&botPkt), sizeof(botPkt));
+        MeantendoTelemetry txPkt;
+        txPkt.magic = 0xDEB0;
+        txPkt.seq = p2Seq++;
+        txPkt.joyX = p2JoyX;
+        txPkt.joyY = p2JoyY;
+        txPkt.buttons = p2Buttons;
+        txPkt.battery = 100;
+        txPkt.checksum = calcChecksum(txPkt);
 
-            static unsigned long lastLog = 0;
-            if (millis() - lastLog >= 1000) {
-                lastLog = millis();
-                const char* bNames[] = { "A", "B", "X", "Y" };
-                Serial.printf("[BOT-SPAMMER] TX #%5u | Simulating P2: Y=%4d | Btn: [%s]\n",
-                              botSeq, simY, bNames[phase]);
-            }
+        if (esp_now_send(broadcastMac, reinterpret_cast<uint8_t*>(&txPkt), sizeof(txPkt)) == ESP_OK) {
+            p2PacketsSent++;
         }
     }
 
-    // Stream received telemetry to Serial & WebSockets at ~50 Hz
-    static unsigned long lastBroadcast = 0;
-    unsigned long now = millis();
+    // 5. Periodic Diagnostic Console (Every 1000ms)
+    static unsigned long lastLog = 0;
+    if (millis() - lastLog >= 1000) {
+        lastLog = millis();
 
-    if (newDataAvailable && (now - lastBroadcast >= 20)) {
-        lastBroadcast = now;
-        newDataAvailable = false;
+        bool p1Connected = (millis() - lastP1PacketTime < 1000);
 
-        // Print to Serial
-        char btnStr[32] = "";
-        if (currentButtons & (1 << 0)) strcat(btnStr, "A ");
-        if (currentButtons & (1 << 1)) strcat(btnStr, "B ");
-        if (currentButtons & (1 << 2)) strcat(btnStr, "X ");
-        if (currentButtons & (1 << 3)) strcat(btnStr, "Y ");
-        if (currentButtons & (1 << 4)) strcat(btnStr, "SEL ");
-        if (currentButtons & (1 << 5)) strcat(btnStr, "BACK ");
+        char p1BtnStr[32] = "";
+        if (p1Buttons & (1 << 0)) strcat(p1BtnStr, "A ");
+        if (p1Buttons & (1 << 1)) strcat(p1BtnStr, "B ");
+        if (p1Buttons & (1 << 2)) strcat(p1BtnStr, "X ");
+        if (p1Buttons & (1 << 3)) strcat(p1BtnStr, "Y ");
 
-        Serial.printf("[ESP-NOW #%5u] X:%4d Y:%4d | Buttons: [%s]\n",
-                      lastSeq, currentX, currentY, btnStr);
+        char p2BtnStr[32] = "";
+        if (p2Buttons & (1 << 0)) strcat(p2BtnStr, "A ");
+        if (p2Buttons & (1 << 1)) strcat(p2BtnStr, "B ");
+        if (p2Buttons & (1 << 2)) strcat(p2BtnStr, "X ");
+        if (p2Buttons & (1 << 3)) strcat(p2BtnStr, "Y ");
 
-        // Broadcast JSON to all connected Web browsers
-        char jsonBuf[128];
-        snprintf(jsonBuf, sizeof(jsonBuf),
-                 "{\"seq\":%u,\"x\":%d,\"y\":%d,\"b\":%u,\"total\":%u}",
-                 lastSeq, currentX, currentY, currentButtons, totalPacketsRecv);
-        webSocket.broadcastTXT(jsonBuf);
+        if (p1Connected) {
+            Serial.printf("[PEER-LINK: OK] P1 (Meantendo): Y=%4d Btns:[%s] RX#%u | P2 (Companion): Y=%4d Btns:[%s] TX#%u\n",
+                          p1JoyY, p1BtnStr, p1PacketsRecv, p2JoyY, p2BtnStr, p2PacketsSent);
+        } else {
+            Serial.printf("[PEER-LINK: WAITING] Transmitting P2 Telemetry (TX#%u) | Waiting for Meantendo Console packets on Channel 1...\n",
+                          p2PacketsSent);
+        }
     }
 }
-
-// ── HTML Web Content ──────────────────────────────────────
-const char INDEX_HTML[] PROGMEM = R"rawhtml(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Meantendo Arcade Bridge</title>
-  <style>
-    body { background: #0c0e17; color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-    h1 { background: linear-gradient(135deg, #00d2ff, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; background: rgba(0,210,255,0.2); color: #00d2ff; margin-bottom: 20px; }
-    .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; max-width: 960px; width: 100%; }
-    .card { background: #161a29; border-radius: 12px; padding: 20px; border: 1px solid #282f49; }
-    .stick-box { width: 140px; height: 140px; border-radius: 50%; background: #08090f; border: 2px solid #333d61; position: relative; margin: 15px auto; }
-    .thumb { width: 40px; height: 40px; border-radius: 50%; background: #00d2ff; position: absolute; top: 50px; left: 50px; box-shadow: 0 0 15px #00d2ff; transition: transform 0.03s linear; }
-    .btn-row { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
-    .btn { width: 45px; height: 45px; border-radius: 50%; background: #222940; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .btn.active { background: #00ff88; color: #000; box-shadow: 0 0 15px #00ff88; }
-    canvas { width: 100%; height: 260px; background: #040508; border-radius: 8px; }
-  </style>
-</head>
-<body>
-  <h1>MEANTENDO CONNECT</h1>
-  <div class="badge" id="status">Connecting to Bridge...</div>
-  <div class="grid">
-    <div class="card">
-      <h3>Live Controller Stream</h3>
-      <div class="stick-box"><div class="thumb" id="thumb"></div></div>
-      <div class="btn-row">
-        <div class="btn" id="bY">Y</div>
-        <div class="btn" id="bX">X</div>
-        <div class="btn" id="bB">B</div>
-        <div class="btn" id="bA">A</div>
-      </div>
-      <p style="text-align: center; margin-top: 15px; color: #64748b;" id="telemetry">X: 2048 | Y: 2048</p>
-    </div>
-    <div class="card">
-      <h3>Connected Big-Screen Arcade</h3>
-      <canvas id="gameCanvas" width="400" height="260"></canvas>
-      <p style="margin-top: 10px; font-size: 0.85rem; color: #94a3b8;">Control with Meantendo: <b>Stick</b> to move, <b>Button A</b> to fire!</p>
-    </div>
-  </div>
-  <script>
-    const status = document.getElementById('status');
-    const thumb = document.getElementById('thumb');
-    const tele = document.getElementById('telemetry');
-    const bA = document.getElementById('bA');
-    const bB = document.getElementById('bB');
-    const bX = document.getElementById('bX');
-    const bY = document.getElementById('bY');
-    let input = { x: 2048, y: 2048, a: false };
-
-    const ws = new WebSocket(`ws://${location.hostname}:81/`);
-    ws.onopen = () => { status.textContent = 'ESP-NOW Connected (<3ms)'; status.style.color = '#00ff88'; };
-    ws.onmessage = (e) => {
-      const d = JSON.parse(e.data);
-      input.x = d.x; input.y = d.y;
-      input.a = Boolean(d.b & 1);
-      const offX = ((d.x - 2048) / 2048) * 45;
-      const offY = ((d.y - 2048) / 2048) * 45;
-      thumb.style.transform = `translate(${offX}px, ${offY}px)`;
-      tele.textContent = `Seq: #${d.seq} | X: ${d.x} | Y: ${d.y}`;
-      bA.className = 'btn' + (d.b & 1 ? ' active' : '');
-      bB.className = 'btn' + (d.b & 2 ? ' active' : '');
-      bX.className = 'btn' + (d.b & 4 ? ' active' : '');
-      bY.className = 'btn' + (d.b & 8 ? ' active' : '');
-    };
-
-    // Canvas Game
-    const cvs = document.getElementById('gameCanvas');
-    const ctx = cvs.getContext('2d');
-    let p = { x: 200, y: 220 };
-    let bullets = [], rocks = [];
-    function loop() {
-      ctx.fillStyle = '#040508'; ctx.fillRect(0,0,400,260);
-      const nx = (input.x - 2048) / 2048;
-      const ny = (input.y - 2048) / 2048;
-      if (Math.abs(nx) > 0.15) p.x += nx * 4;
-      if (Math.abs(ny) > 0.15) p.y += ny * 4;
-      p.x = Math.max(10, Math.min(390, p.x));
-      p.y = Math.max(10, Math.min(250, p.y));
-
-      if (input.a && Math.random() < 0.2) bullets.push({x: p.x, y: p.y - 10});
-      ctx.fillStyle = '#00ff88';
-      bullets.forEach((b, i) => { b.y -= 6; ctx.fillRect(b.x-2, b.y, 4, 8); if (b.y < 0) bullets.splice(i, 1); });
-
-      if (Math.random() < 0.03) rocks.push({x: Math.random()*380+10, y: 0});
-      ctx.fillStyle = '#ff4466';
-      rocks.forEach((r, i) => { r.y += 2; ctx.beginPath(); ctx.arc(r.x, r.y, 8, 0, 7); ctx.fill(); if (r.y > 270) rocks.splice(i, 1); });
-
-      ctx.fillStyle = '#00d2ff';
-      ctx.beginPath(); ctx.moveTo(p.x, p.y-10); ctx.lineTo(p.x-8, p.y+8); ctx.lineTo(p.x+8, p.y+8); ctx.fill();
-      requestAnimationFrame(loop);
-    }
-    loop();
-  </script>
-</body>
-</html>
-)rawhtml";

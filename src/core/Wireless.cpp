@@ -39,16 +39,16 @@ static void onDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 }
 
 bool init() {
-    if (initialized) return true;
-
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
 
     esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
     esp_wifi_set_max_tx_power(78); // ~19.5 dBm
 
+    esp_now_deinit();
     if (esp_now_init() != ESP_OK) {
         Serial.println("[ERR] ESP-NOW initialization failed");
+        initialized = false;
         return false;
     }
 
@@ -61,6 +61,7 @@ bool init() {
 
     if (esp_now_add_peer(&peerInfo) != ESP_OK) {
         Serial.println("[ERR] Failed to register broadcast peer");
+        initialized = false;
         return false;
     }
 

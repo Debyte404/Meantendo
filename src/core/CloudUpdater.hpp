@@ -56,5 +56,6 @@ bool isVersionNewer(const String& remoteTag, const String& currentVersion);
 
 typedef void (*OtaProgressCallback)(int percent, size_t bytesDownloaded, size_t totalBytes);
 bool performOtaUpdate(const String& downloadUrl, size_t expectedSize, OtaProgressCallback progressCb);
+String getLastOtaError();
 
 } // namespace CloudUpdater

@@ -492,17 +492,36 @@ trigger_connect:
                     while (true) {
                         if (aPressedD()) {
                             appState = STATE_FLASHING_OTA;
-                            CloudUpdater::performOtaUpdate(releaseInfo.downloadUrl, releaseInfo.assetSize, onOtaProgress);
-                            Buzzer::play(Buzzer::Sound::Confirm);
-                            tft.fillScreen(ST77XX_BLACK);
-                            tft.setTextColor(ST77XX_GREEN);
-                            tft.setCursor(16, 55);
-                            tft.print("UPDATE COMPLETE!");
-                            tft.setCursor(16, 70);
-                            tft.print("REBOOTING CONSOLE");
-                            delay(1500);
-                            ESP.restart();
-                            break;
+                            bool ok = CloudUpdater::performOtaUpdate(releaseInfo.downloadUrl, releaseInfo.assetSize, onOtaProgress);
+                            if (ok) {
+                                Buzzer::play(Buzzer::Sound::Confirm);
+                                tft.fillScreen(ST77XX_BLACK);
+                                tft.setTextColor(ST77XX_GREEN);
+                                tft.setCursor(16, 55);
+                                tft.print("UPDATE COMPLETE!");
+                                tft.setCursor(16, 70);
+                                tft.print("REBOOTING CONSOLE");
+                                delay(1500);
+                                ESP.restart();
+                                break;
+                            } else {
+                                Buzzer::play(Buzzer::Sound::Error);
+                                tft.fillRect(8, 25, 144, 80, tft.color565(30, 10, 10));
+                                tft.drawRoundRect(8, 25, 144, 80, 3, ST77XX_RED);
+                                tft.setTextColor(ST77XX_RED);
+                                tft.setCursor(16, 35);
+                                tft.print("OTA FLASH FAILED!");
+                                tft.setTextColor(ST77XX_YELLOW);
+                                tft.setCursor(16, 52);
+                                tft.print(CloudUpdater::getLastOtaError());
+                                tft.setTextColor(ST77XX_WHITE);
+                                tft.setCursor(16, 72);
+                                tft.print("Press B to return");
+                                while (!bPressedD() && !backPressedD()) {
+                                    delay(50);
+                                }
+                                break;
+                            }
                         }
                         if (bPressedD() || backPressedD()) {
                             break;

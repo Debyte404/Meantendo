@@ -9,198 +9,177 @@
 #include "CloudUpdater.hpp"
 #include "Config.hpp"
 
+// Forward declaration from BluetoothPad
+void stopBluetoothPad();
+
 // ═══════════════════════════════════════════════════════════
-//  Meantendo Menu System — "Passion Project" Edition
-//  Categories, animated cursor, scrollbar, polished colors
+//  Meantendo Tabbed Home System — "Switch & GBA" Style
+//  Horizontal Left/Right Category Tabs: GAMES | TOOLS | VISUALS
+//  Silky-smooth, zero-artifact, category-isolated navigation
 // ═══════════════════════════════════════════════════════════
 
-// Color palette
 #define MENU_BG       ST77XX_BLACK
-#define MENU_HEADER   tft.color565(0, 200, 255)   // Bright cyan
-#define MENU_ITEM     ST77XX_WHITE
-#define MENU_SEL_BG   tft.color565(255, 200, 0)   // Warm yellow
-#define MENU_SEL_TXT  ST77XX_BLACK
-#define MENU_CAT_BAR  tft.color565(40, 40, 60)    // Dark blue-grey
-#define MENU_CAT_TXT  tft.color565(120, 180, 255)  // Soft blue
-#define MENU_FOOTER   tft.color565(80, 180, 255)
-#define MENU_SCROLL   tft.color565(100, 100, 120)
-#define MENU_BORDER   tft.color565(50, 50, 70)
+#define MENU_HEADER   tft.color565(0, 220, 255)
+#define MENU_ITEM     tft.color565(210, 225, 245)
+#define MENU_SEL_BG   tft.color565(255, 195, 0)
+#define MENU_SEL_TXT  tft.color565(15, 20, 30)
+#define MENU_BORDER   tft.color565(40, 48, 70)
+#define MENU_TAB_ACT  tft.color565(0, 140, 225)
+#define MENU_TAB_INACT tft.color565(20, 25, 38)
+#define MENU_SCROLL   tft.color565(0, 180, 240)
 
 extern Adafruit_ST7735 tft;
 extern GameDef* gameRegistry[MAX_GAMES];
 extern int gameCount;
 
-// ── Internal display list ──
-#define MENU_TYPE_HEADER 0
-#define MENU_TYPE_ITEM   1
+static uint8_t currentCategory = CAT_GAMES; // 0=GAMES, 1=TOOLS, 2=VISUALS
+static const char* categoryNames[NUM_CATEGORIES] = { "GAMES", "TOOLS", "VISUALS" };
 
-struct MenuItem {
-  uint8_t type;       // HEADER or ITEM
-  uint8_t gameIndex;  // index into gameRegistry (only for ITEM)
-  const char* label;
-};
-
-#define MAX_MENU_ITEMS (MAX_GAMES + 4)
-static MenuItem menuItems[MAX_MENU_ITEMS];
-static int menuItemCount = 0;
-
-static int selectedIndex = 0;  // index into menuItems[]
+// Filtered items currently displayed in active tab
+static uint8_t activeGameIndices[MAX_GAMES];
+static int activeItemCount = 0;
+static int selectedIndex = 0;
 static int scrollOffset = 0;
 
 #define VISIBLE_ITEMS 5
 #define ITEM_HEIGHT   15
-#define HEADER_HEIGHT 14
-#define LIST_TOP      24
-#define LIST_BOTTOM   (tft.height() - 16)
+#define LIST_TOP      34
+#define LIST_BOTTOM   114
 
-// ── Build display list ──
-static void buildMenuList() {
-  menuItemCount = 0;
-
-  // Games section
-  bool hasGames = false;
-  for (int i = 0; i < gameCount; i++)
-    if (gameRegistry[i]->category == 0) { hasGames = true; break; }
-
-  if (hasGames) {
-    menuItems[menuItemCount++] = { MENU_TYPE_HEADER, 0, "\x10 GAMES" };
-    for (int i = 0; i < gameCount; i++) {
-      if (gameRegistry[i]->category == 0)
-        menuItems[menuItemCount++] = { MENU_TYPE_ITEM, (uint8_t)i, gameRegistry[i]->name };
+// ── Populate active category items ──
+static void buildCategoryList() {
+  activeItemCount = 0;
+  for (int i = 0; i < gameCount; i++) {
+    if (gameRegistry[i]->category == currentCategory) {
+      activeGameIndices[activeItemCount++] = (uint8_t)i;
     }
   }
 
-  // Demos & Tools section
-  bool hasDemos = false;
-  for (int i = 0; i < gameCount; i++)
-    if (gameRegistry[i]->category == 1) { hasDemos = true; break; }
-
-  if (hasDemos) {
-    menuItems[menuItemCount++] = { MENU_TYPE_HEADER, 0, "\x10 VISUALS & TOOLS" };
-    for (int i = 0; i < gameCount; i++) {
-      if (gameRegistry[i]->category == 1)
-        menuItems[menuItemCount++] = { MENU_TYPE_ITEM, (uint8_t)i, gameRegistry[i]->name };
-    }
-  }
-
-  // Make sure selectedIndex points to a selectable item
-  if (menuItemCount > 0 && menuItems[selectedIndex].type == MENU_TYPE_HEADER) {
-    selectedIndex++;
-    if (selectedIndex >= menuItemCount) selectedIndex = 0;
-  }
+  selectedIndex = 0;
+  scrollOffset = 0;
 }
 
-// ── Drawing ──
+// ── Drawing Header & Category Tabs ──
+static void drawHeaderAndTabs() {
+  // 1. Top status bar (y = 0..16)
+  tft.fillRect(0, 0, tft.width(), 16, tft.color565(12, 16, 26));
+  tft.drawFastHLine(0, 16, tft.width(), MENU_BORDER);
 
-static void drawHeader() {
-  tft.fillRect(0, 0, tft.width(), 20, tft.color565(15, 15, 25));
-  tft.drawFastHLine(0, 20, tft.width(), MENU_BORDER);
-
-  const char* title = "MEANTENDO";
   tft.setTextSize(1);
   tft.setTextColor(MENU_HEADER);
-  int16_t xTitle = (tft.width() - (int)strlen(title) * 6) / 2;
-  tft.setCursor(xTitle, 3);
-  tft.print(title);
+  tft.setCursor(6, 4);
+  tft.print("MEANTENDO");
 
-  // Version tag
-  tft.setTextSize(1);
-  tft.setTextColor(tft.color565(100, 150, 210));
-  int verLen = strlen(MEANTENDO_VERSION);
-  int xVer = tft.width() - (verLen * 6) - 4;
-  tft.setCursor(xVer, 11);
+  tft.setTextColor(tft.color565(110, 140, 185));
+  int verLen = (int)strlen(MEANTENDO_VERSION);
+  tft.setCursor(tft.width() - (verLen * 6) - 6, 4);
   tft.print(MEANTENDO_VERSION);
+
+  // 2. Category Tab Bar (y = 17..32)
+  tft.fillRect(0, 17, tft.width(), 16, tft.color565(15, 18, 30));
+  tft.drawFastHLine(0, 33, tft.width(), MENU_BORDER);
+
+  int tabWidths[NUM_CATEGORIES] = { 50, 48, 52 };
+  int tabPositions[NUM_CATEGORIES] = { 4, 56, 106 };
+
+  for (int c = 0; c < NUM_CATEGORIES; c++) {
+    int tx = tabPositions[c];
+    int tw = tabWidths[c];
+    bool isActive = (c == currentCategory);
+
+    if (isActive) {
+      // Active Tab Pill with bottom neon accent
+      tft.fillRoundRect(tx, 18, tw, 13, 2, MENU_TAB_ACT);
+      tft.drawFastHLine(tx + 4, 31, tw - 8, tft.color565(0, 255, 240));
+      tft.setTextColor(ST77XX_WHITE);
+    } else {
+      tft.fillRoundRect(tx, 18, tw, 13, 2, MENU_TAB_INACT);
+      tft.setTextColor(tft.color565(100, 120, 150));
+    }
+
+    tft.setTextSize(1);
+    const char* name = categoryNames[c];
+    int nameLen = (int)strlen(name);
+    int textX = tx + (tw - (nameLen * 6)) / 2;
+    tft.setCursor(textX, 21);
+    tft.print(name);
+  }
 }
 
 static void drawFooter() {
   int footerY = tft.height() - 13;
-  tft.fillRect(0, footerY, tft.width(), 13, tft.color565(15, 15, 25));
+  tft.fillRect(0, footerY, tft.width(), 13, tft.color565(12, 15, 24));
   tft.drawFastHLine(0, footerY, tft.width(), MENU_BORDER);
 
-  const char* footer = "BACK: Sleep  |  A: Play";
+  const char* footer = "< >:Tab  ^v:Pick  A:Play";
   tft.setTextSize(1);
-  tft.setTextColor(MENU_FOOTER);
-  int16_t xFooter = (tft.width() - (int)strlen(footer) * 6) / 2;
+  tft.setTextColor(tft.color565(120, 160, 210));
+  int16_t xFooter = (tft.width() - ((int)strlen(footer) * 6)) / 2;
   tft.setCursor(xFooter, footerY + 3);
   tft.print(footer);
 }
 
 static void drawScrollbar() {
-  int sbX = tft.width() - 4;
-  int sbTop = LIST_TOP;
-  int sbHeight = LIST_BOTTOM - LIST_TOP;
+  int sbX = tft.width() - 5;
+  int sbTop = LIST_TOP + 1;
+  int sbHeight = (LIST_BOTTOM - LIST_TOP) - 2;
+
+  // Erase scrollbar channel completely
   tft.fillRect(sbX - 2, sbTop, 6, sbHeight, MENU_BG);
-  if (menuItemCount <= VISIBLE_ITEMS) return;
-  tft.drawFastVLine(sbX, sbTop, sbHeight, tft.color565(35, 35, 50));
-  int thumbH = max(8, sbHeight * VISIBLE_ITEMS / menuItemCount);
-  int thumbY = sbTop + (sbHeight - thumbH) * scrollOffset / max(1, menuItemCount - VISIBLE_ITEMS);
+
+  if (activeItemCount <= VISIBLE_ITEMS) return;
+
+  tft.drawFastVLine(sbX, sbTop, sbHeight, tft.color565(35, 40, 55));
+
+  int thumbH = max(8, sbHeight * VISIBLE_ITEMS / activeItemCount);
+  int thumbY = sbTop + (sbHeight - thumbH) * scrollOffset / max(1, activeItemCount - VISIBLE_ITEMS);
   tft.fillRoundRect(sbX - 1, thumbY, 3, thumbH, 1, MENU_SCROLL);
 }
+
 static void drawMenuList() {
-  tft.fillRect(0, LIST_TOP, tft.width() - 6, LIST_BOTTOM - LIST_TOP, MENU_BG);
+  // Wipe entire item area cleanly
+  tft.fillRect(0, LIST_TOP, tft.width() - 6, (LIST_BOTTOM - LIST_TOP), MENU_BG);
+
+  if (activeItemCount == 0) {
+    tft.setTextColor(tft.color565(120, 130, 150));
+    tft.setCursor(20, LIST_TOP + 20);
+    tft.print("No Apps in Category");
+    drawScrollbar();
+    return;
+  }
 
   int y = LIST_TOP + 2;
 
   for (int vi = 0; vi < VISIBLE_ITEMS; vi++) {
     int idx = scrollOffset + vi;
-    if (idx >= menuItemCount) break;
+    if (idx >= activeItemCount) break;
 
-    if (menuItems[idx].type == MENU_TYPE_HEADER) {
-      tft.fillRect(4, y, tft.width() - 12, HEADER_HEIGHT, MENU_CAT_BAR);
-      tft.setTextSize(1);
-      tft.setTextColor(MENU_CAT_TXT);
-      tft.setCursor(8, y + 3);
-      tft.print(menuItems[idx].label);
-      y += HEADER_HEIGHT + 2;
+    uint8_t gi = activeGameIndices[idx];
+    const char* label = gameRegistry[gi]->name;
+    bool selected = (idx == selectedIndex);
+
+    if (selected) {
+      tft.fillRoundRect(6, y, tft.width() - 18, ITEM_HEIGHT - 1, 2, MENU_SEL_BG);
+      tft.setTextColor(MENU_SEL_TXT);
+      tft.setCursor(10, y + 3);
+      tft.print(">");
+      tft.setCursor(20, y + 3);
+      tft.print(label);
     } else {
-      bool selected = (idx == selectedIndex);
-
-      if (selected) {
-        tft.fillRoundRect(6, y, tft.width() - 16, ITEM_HEIGHT, 3, MENU_SEL_BG);
-        tft.setTextColor(MENU_SEL_TXT);
-
-        int arrowX = 9;
-        tft.setCursor(arrowX, y + 3);
-        tft.setTextSize(1);
-        tft.print("\x10");
-      } else {
-        tft.setTextColor(MENU_ITEM);
-      }
-
-      tft.setTextSize(1);
-      int labelX = selected ? 20 : 14;
-      tft.setCursor(labelX, y + 4);
-      tft.print(menuItems[idx].label);
-
-      if (!selected) {
-        uint8_t gi = menuItems[idx].gameIndex;
-        if (gi < gameCount && gameRegistry[gi]->category == 1) {
-          tft.setTextColor(tft.color565(80, 80, 120));
-          tft.setCursor(tft.width() - 22, y + 4);
-          tft.print("~");
-        }
-      }
-
-      y += ITEM_HEIGHT + 1;
+      tft.drawRoundRect(6, y, tft.width() - 18, ITEM_HEIGHT - 1, 2, tft.color565(25, 32, 48));
+      tft.setTextColor(MENU_ITEM);
+      tft.setCursor(14, y + 3);
+      tft.print(label);
     }
+
+    y += ITEM_HEIGHT;
   }
 
   drawScrollbar();
 }
 
-// ── Navigation ──
-
-static int findNextSelectable(int from, int delta) {
-  int idx = from;
-  for (int attempts = 0; attempts < menuItemCount; attempts++) {
-    idx = (idx + delta + menuItemCount) % menuItemCount;
-    if (menuItems[idx].type == MENU_TYPE_ITEM) return idx;
-  }
-  return from;
-}
-
 static void ensureVisible() {
-  if (menuItemCount <= VISIBLE_ITEMS) {
+  if (activeItemCount <= VISIBLE_ITEMS) {
     scrollOffset = 0;
     return;
   }
@@ -210,12 +189,20 @@ static void ensureVisible() {
   if (selectedIndex >= scrollOffset + VISIBLE_ITEMS) {
     scrollOffset = selectedIndex - VISIBLE_ITEMS + 1;
   }
-  scrollOffset = constrain(scrollOffset, 0, max(0, menuItemCount - VISIBLE_ITEMS));
+  scrollOffset = constrain(scrollOffset, 0, max(0, activeItemCount - VISIBLE_ITEMS));
+}
+
+static void switchCategory(int delta) {
+  currentCategory = (currentCategory + delta + NUM_CATEGORIES) % NUM_CATEGORIES;
+  buildCategoryList();
+  drawHeaderAndTabs();
+  drawMenuList();
+  Buzzer::play(Buzzer::Sound::Click);
 }
 
 static void moveSelection(int delta) {
-  if (menuItemCount == 0) return;
-  selectedIndex = findNextSelectable(selectedIndex, delta);
+  if (activeItemCount == 0) return;
+  selectedIndex = (selectedIndex + delta + activeItemCount) % activeItemCount;
   ensureVisible();
   drawMenuList();
   Buzzer::play(Buzzer::Sound::Click);
@@ -225,7 +212,7 @@ static void moveSelection(int delta) {
 
 inline void drawMenuFrame() {
   tft.fillScreen(MENU_BG);
-  drawHeader();
+  drawHeaderAndTabs();
   drawFooter();
 }
 
@@ -234,13 +221,7 @@ inline void drawMenuItems() {
 }
 
 inline void handleMenuInput() {
-  if (menuItemCount == 0) {
-    Buzzer::play(Buzzer::Sound::Error);
-    delay(200);
-    return;
-  }
-
-  // Sleep Trigger: When in home menu, pressing BACK puts console to sleep with solid pitch-black screen
+  // Sleep Trigger: When in home menu, pressing BACK sleeps console
   if (backPressed()) {
     Buzzer::play(Buzzer::Sound::Click);
     powerEngine.enterLightSleep();
@@ -250,21 +231,31 @@ inline void handleMenuInput() {
     return;
   }
 
+  // Auto-repeating joystick input
   Direction dir = readJoystickAutoRepeat(350, 150);
 
-  if (dir == DIR_UP) {
+  if (dir == DIR_LEFT) {
+    switchCategory(-1);
+    delay(100);
+    return;
+  } else if (dir == DIR_RIGHT) {
+    switchCategory(+1);
+    delay(100);
+    return;
+  } else if (dir == DIR_UP) {
     moveSelection(-1);
   } else if (dir == DIR_DOWN) {
     moveSelection(+1);
   }
 
-  if (selectPressed() || aPressed()) {
-    if (menuItems[selectedIndex].type != MENU_TYPE_ITEM) return;
+  // Launch App
+  if (aPressed() || selectPressed()) {
+    if (activeItemCount == 0) return;
 
     Buzzer::play(Buzzer::Sound::Confirm);
-    uint8_t gi = menuItems[selectedIndex].gameIndex;
+    uint8_t gi = activeGameIndices[selectedIndex];
 
-    // Transition effect
+    // Transition wipe
     for (int i = 0; i < tft.height(); i += 4) {
       tft.drawFastHLine(0, i, tft.width(), ST77XX_BLACK);
       tft.drawFastHLine(0, tft.height() - i, tft.width(), ST77XX_BLACK);
@@ -278,7 +269,10 @@ inline void handleMenuInput() {
       if (backPressed()) {
         Buzzer::play(Buzzer::Sound::Click);
         delay(150);
+        // Explicitly disconnect Bluetooth and restore ESP-NOW/WiFi
+        stopBluetoothPad();
         CloudUpdater::disconnectAndRestoreEspNow();
+
         drawMenuFrame();
         drawMenuList();
         break;
@@ -286,17 +280,11 @@ inline void handleMenuInput() {
     }
   }
 
-  delay(80);
+  delay(60);
 }
 
 inline void initMenu() {
-  buildMenuList();
-
-  if (menuItemCount > 0 && menuItems[selectedIndex].type != MENU_TYPE_ITEM) {
-    selectedIndex = findNextSelectable(0, 1);
-  }
-  ensureVisible();
-
+  buildCategoryList();
   drawMenuFrame();
   drawMenuList();
 }

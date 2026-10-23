@@ -193,4 +193,4 @@ void loopMaze() {
   delay(10);
 }
 
-GameDef mazeDemo = { "Maze", startMaze, loopMaze, 1 };
+GameDef mazeDemo = { "Maze", startMaze, loopMaze, 2 };

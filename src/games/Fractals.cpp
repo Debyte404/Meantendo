@@ -140,4 +140,4 @@ void loopFractals() {
   }
 }
 
-GameDef fractalsDemo = { "Fractal", startFractals, loopFractals, 1 };
+GameDef fractalsDemo = { "Fractal", startFractals, loopFractals, 2 };

@@ -17,6 +17,15 @@ static BleGamepad bleGamepad("Meantendo Pad", "Debyte", 100);
 static bool bleStarted = false;
 static bool wasConnected = false;
 
+void stopBluetoothPad() {
+    if (bleStarted) {
+        bleGamepad.end();
+        bleStarted = false;
+        btStop();
+        Serial.println("[BT] Gamepad disconnected and BLE radio powered OFF");
+    }
+}
+
 static void drawBlePadFrame() {
     tft.fillScreen(ST77XX_BLACK);
 
@@ -60,14 +69,9 @@ static void drawBlePadFrame() {
 
 static void startBluetoothPad() {
     if (!bleStarted) {
-        BleGamepadConfiguration bleConfig;
-        bleConfig.setAutoReport(false);
-        bleConfig.setControllerType(CONTROLLER_TYPE_GAMEPAD);
-        bleConfig.setButtonCount(16);
-        bleConfig.setWhichAxes(true, true, false, false, false, false, false, false);
-        bleConfig.setVid(0x045E); // Standard Gamepad VID
-        bleConfig.setPid(0x028E); // Standard Gamepad PID
-        bleGamepad.begin(&bleConfig);
+        btStart();
+        // Standard generic BLE HID configuration -- universally accepted by Windows, Mac, Android, and Gamepad-Tester
+        bleGamepad.begin();
         bleStarted = true;
     }
 
@@ -121,7 +125,7 @@ static void loopBluetoothPad() {
     int dotX = map(filtX, 0, 4095, 12, 50);
     int dotY = map(filtY, 0, 4095, 39, 77);
 
-    // Refresh crosshair interior safely
+    // Refresh crosshair interior safely without eroding border
     tft.fillRect(9, 36, 44, 44, ST77XX_BLACK);
     tft.drawRoundRect(8, 35, 46, 46, 3, tft.color565(60, 70, 95));
     tft.drawFastHLine(10, 58, 42, tft.color565(35, 42, 60));

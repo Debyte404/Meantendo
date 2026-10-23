@@ -147,4 +147,4 @@ void loopParticles() {
   delay(20);
 }
 
-GameDef particlesDemo = { "Sparks", startParticles, loopParticles, 1 };
+GameDef particlesDemo = { "Sparks", startParticles, loopParticles, 2 };

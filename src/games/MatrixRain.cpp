@@ -111,4 +111,4 @@ void loopMatrixRain() {
   delay(30);
 }
 
-GameDef matrixDemo = { "Matrix", startMatrixRain, loopMatrixRain, 1 };
+GameDef matrixDemo = { "Matrix", startMatrixRain, loopMatrixRain, 2 };

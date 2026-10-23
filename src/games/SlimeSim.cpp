@@ -160,4 +160,4 @@ void loopSlime() {
   blurMap = tmp;
 }
 
-GameDef slimeDemo = { "SlimeMold", startSlime, loopSlime, 1 };
+GameDef slimeDemo = { "SlimeMold", startSlime, loopSlime, 2 };

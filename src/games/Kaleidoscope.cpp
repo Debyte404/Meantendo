@@ -81,4 +81,4 @@ void loopKaleidoscope() {
   delay(25);
 }
 
-GameDef kaleidoscopeDemo = { "Kaleido", startKaleidoscope, loopKaleidoscope, 1 };
+GameDef kaleidoscopeDemo = { "Kaleido", startKaleidoscope, loopKaleidoscope, 2 };

@@ -232,17 +232,18 @@ static void drawKeyboardScreen() {
 // ── OTA PROGRESS CALLBACK ──
 
 static void onOtaProgress(int percent, size_t bytesDownloaded, size_t totalBytes) {
-    int bx = 10, by = 25, bw = 140, bh = 76;
+    int bx = 8, by = 22, bw = 144, bh = 82;
     tft.fillRect(bx, by, bw, bh, tft.color565(12, 18, 32));
-    tft.drawRect(bx, by, bw, bh, tft.color565(0, 200, 255));
+    tft.drawRoundRect(bx, by, bw, bh, 3, tft.color565(0, 200, 255));
 
     tft.setTextColor(tft.color565(0, 220, 255));
-    tft.setCursor(bx + 14, by + 8);
+    tft.setTextSize(1);
+    tft.setCursor(bx + 20, by + 8);
     tft.print("UPDATING FIRMWARE");
 
-    int barX = bx + 8;
+    int barX = bx + 10;
     int barY = by + 24;
-    int barW = bw - 16;
+    int barW = bw - 20;
     int barH = 12;
 
     tft.drawRect(barX, barY, barW, barH, ST77XX_WHITE);
@@ -250,12 +251,19 @@ static void onOtaProgress(int percent, size_t bytesDownloaded, size_t totalBytes
     tft.fillRect(barX + 2, barY + 2, fillW, barH - 4, ST77XX_GREEN);
     tft.fillRect(barX + 2 + fillW, barY + 2, (barW - 4) - fillW, barH - 4, ST77XX_BLACK);
 
+    char progStr[32];
+    snprintf(progStr, sizeof(progStr), "%d%% (%u/%u KB)", percent,
+             (unsigned int)(bytesDownloaded / 1024), (unsigned int)(totalBytes / 1024));
+    int progLen = (int)strlen(progStr);
+    int progX = (tft.width() - (progLen * 6)) / 2;
+
+    tft.fillRect(bx + 2, by + 42, bw - 4, 10, tft.color565(12, 18, 32));
     tft.setTextColor(ST77XX_WHITE);
-    tft.setCursor(bx + 16, by + 42);
-    tft.printf("%3d%% (%u KB / %u KB)", percent, (unsigned int)(bytesDownloaded / 1024), (unsigned int)(totalBytes / 1024));
+    tft.setCursor(progX, by + 42);
+    tft.print(progStr);
 
     tft.setTextColor(ST77XX_RED);
-    tft.setCursor(bx + 14, by + 58);
+    tft.setCursor(bx + 20, by + 62);
     tft.print("DO NOT POWER OFF!");
 }
 

@@ -122,11 +122,13 @@ void setup() {
   registerGame(&breakoutGame);
   registerGame(&conwayGame);
 
-  // ── Register Tools & Visual Demos (category 1) ──
+  // ── Register Tools (category 1) ──
   registerGame(&systemLabApp);
   registerGame(&wirelessPadApp);
-  registerGame(&wifiUpdaterApp);
   registerGame(&bluetoothPadApp);
+  registerGame(&wifiUpdaterApp);
+
+  // ── Register Visual Demos & Simulations (category 2) ──
   registerGame(&kaleidoscopeDemo);
   registerGame(&matrixDemo);
   registerGame(&mazeDemo);

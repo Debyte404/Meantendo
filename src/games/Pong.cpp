@@ -1,5 +1,9 @@
 #include "../core/Game.hpp"
 #include "../core/Input.hpp"
+#include "../core/RasterEngine.hpp"
+#include "../core/Wireless.hpp"
+#include "../core/CryptoJournal.hpp"
+#include "../core/PowerStateEngine.hpp"
 #include <Adafruit_ST7735.h>
 
 extern Adafruit_ST7735 tft;
@@ -50,6 +54,12 @@ inline void drawScore() {
   tft.print(leftScore);
   tft.setCursor(tft.width() - 20, 2);
   tft.print(rightScore);
+
+  if (!singlePlayer) {
+    tft.setCursor(tft.width() / 2 - 24, 2);
+    tft.setTextColor(MeantendoWireless::isPeerConnected() ? ST77XX_GREEN : ST77XX_ORANGE, COLOR_BG);
+    tft.print(MeantendoWireless::isPeerConnected() ? "P2:RF" : "P2:BTN");
+  }
 }
 
 inline void resetGame() {
@@ -58,6 +68,8 @@ inline void resetGame() {
   rightPaddle = {tft.width() - PADDLE_W - 5, tft.height() / 2 - PADDLE_H / 2};
   resetBall();
   tft.fillScreen(COLOR_BG);
+  rasterEngine.init();
+  cryptoJournal.beginSession();
 }
 
 // === MODE SELECTION ===
@@ -65,14 +77,17 @@ void showModeSelect() {
   tft.fillScreen(COLOR_BG);
   tft.setTextSize(2);
   tft.setTextColor(ST77XX_YELLOW);
-  tft.setCursor(20, 30);
+  tft.setCursor(20, 25);
   tft.print("PONG");
   tft.setTextSize(1);
   tft.setTextColor(ST77XX_WHITE);
-  tft.setCursor(10, 70);
-  tft.print("Press A - Single Player");
-  tft.setCursor(10, 90);
-  tft.print("Press B - Multiplayer");
+  tft.setCursor(10, 60);
+  tft.print("Press A: 1-Player (vs AI)");
+  tft.setCursor(10, 80);
+  tft.print("Press B: 2-Player (ESP-NOW)");
+  tft.setTextColor(tft.color565(140, 140, 160));
+  tft.setCursor(10, 105);
+  tft.print("P2 connects wirelessly!");
 
   while (!modeSelected) {
     if (aPressed()) {
@@ -97,23 +112,32 @@ void startPong() {
 
 // === LOOP FUNCTION ===
 void loopPong() {
-  // Erase previous frame (only the moving parts)
-  tft.fillRect(0, 10, tft.width(), tft.height() - 10, COLOR_BG);
+  // Erase only previous frame's moving elements via Dirty-Span Engine
+  rasterEngine.clearDirtySpans(COLOR_BG);
 
-  // --- PLAYER Paddle (Always Joystick Controlled) ---
+  // Register previous positions to clean up next frame
+  rasterEngine.markDirty(leftPaddle.x, leftPaddle.y, PADDLE_W, PADDLE_H);
+  rasterEngine.markDirty(rightPaddle.x, rightPaddle.y, PADDLE_W, PADDLE_H);
+  rasterEngine.markDirty(ball.x, ball.y, BALL_SIZE, BALL_SIZE);
+
+  // --- PLAYER 1 Paddle (Local Joystick) ---
   Direction playerDir = readJoystickContinuous();
   if (playerDir == DIR_UP) leftPaddle.y -= 3;
   else if (playerDir == DIR_DOWN) leftPaddle.y += 3;
 
-  // --- AI or Second Player Paddle ---
+  // --- PLAYER 2 Paddle (AI vs ESP-NOW Wireless Peer vs Buttons) ---
   if (singlePlayer) {
-    // Simple AI for right paddle
     if (ball.y + BALL_SIZE / 2 > rightPaddle.y + PADDLE_H / 2 + 2) rightPaddle.y += 2;
     else if (ball.y + BALL_SIZE / 2 < rightPaddle.y + PADDLE_H / 2 - 2) rightPaddle.y -= 2;
   } else {
-    // Multiplayer: use X/Y buttons
-    if (xPressed()) rightPaddle.y -= 3;
-    else if (yPressed()) rightPaddle.y += 3;
+    // True Wireless Multiplayer via ESP-NOW!
+    if (MeantendoWireless::isPeerConnected()) {
+      int remoteY = MeantendoWireless::getRemoteJoyY();
+      rightPaddle.y = map(remoteY, 0, 4095, 10, tft.height() - PADDLE_H);
+    } else {
+      if (xPressed()) rightPaddle.y -= 3;
+      else if (yPressed()) rightPaddle.y += 3;
+    }
   }
 
   // Bound paddles
@@ -139,11 +163,19 @@ void loopPong() {
     ball.vx = -abs(ball.vx);
   }
 
-  // Scoring
-  if (ball.x <= 0) { rightScore++; resetBall(); }
-  if (ball.x >= tft.width() - BALL_SIZE) { leftScore++; resetBall(); }
+  // Scoring with Cryptographic Journaling
+  if (ball.x <= 0) {
+    rightScore++;
+    cryptoJournal.recordEvent(0x02, 1, rightScore);
+    resetBall();
+  }
+  if (ball.x >= tft.width() - BALL_SIZE) {
+    leftScore++;
+    cryptoJournal.recordEvent(0x01, 1, leftScore);
+    resetBall();
+  }
 
-  // Draw everything
+  // Draw everything cleanly
   drawPaddle(leftPaddle);
   drawPaddle(rightPaddle);
   drawBall(ball);

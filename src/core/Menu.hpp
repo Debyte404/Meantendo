@@ -5,6 +5,8 @@
 #include "Game.hpp"
 #include "Input.hpp"
 #include "Buzzer.hpp"
+#include "PowerStateEngine.hpp"
+#include "CloudUpdater.hpp"
 
 // ═══════════════════════════════════════════════════════════
 //  Meantendo Menu System — "Passion Project" Edition
@@ -19,7 +21,7 @@
 #define MENU_SEL_TXT  ST77XX_BLACK
 #define MENU_CAT_BAR  tft.color565(40, 40, 60)    // Dark blue-grey
 #define MENU_CAT_TXT  tft.color565(120, 180, 255)  // Soft blue
-#define MENU_FOOTER   tft.color565(60, 60, 60)
+#define MENU_FOOTER   tft.color565(80, 180, 255)
 #define MENU_SCROLL   tft.color565(100, 100, 120)
 #define MENU_BORDER   tft.color565(50, 50, 70)
 
@@ -28,7 +30,6 @@ extern GameDef* gameRegistry[MAX_GAMES];
 extern int gameCount;
 
 // ── Internal display list ──
-// We build a flat list that interleaves category headers and game items
 #define MENU_TYPE_HEADER 0
 #define MENU_TYPE_ITEM   1
 
@@ -68,13 +69,13 @@ static void buildMenuList() {
     }
   }
 
-  // Demos section
+  // Demos & Tools section
   bool hasDemos = false;
   for (int i = 0; i < gameCount; i++)
     if (gameRegistry[i]->category == 1) { hasDemos = true; break; }
 
   if (hasDemos) {
-    menuItems[menuItemCount++] = { MENU_TYPE_HEADER, 0, "\x10 VISUALS" };
+    menuItems[menuItemCount++] = { MENU_TYPE_HEADER, 0, "\x10 VISUALS & TOOLS" };
     for (int i = 0; i < gameCount; i++) {
       if (gameRegistry[i]->category == 1)
         menuItems[menuItemCount++] = { MENU_TYPE_ITEM, (uint8_t)i, gameRegistry[i]->name };
@@ -91,7 +92,6 @@ static void buildMenuList() {
 // ── Drawing ──
 
 static void drawHeader() {
-  // Title bar
   tft.fillRect(0, 0, tft.width(), 20, tft.color565(15, 15, 25));
   tft.drawFastHLine(0, 20, tft.width(), MENU_BORDER);
 
@@ -102,11 +102,11 @@ static void drawHeader() {
   tft.setCursor(xTitle, 3);
   tft.print(title);
 
-  // Subtle version tag
+  // Version tag
   tft.setTextSize(1);
   tft.setTextColor(tft.color565(80, 80, 80));
   tft.setCursor(tft.width() - 20, 11);
-  tft.print("v1");
+  tft.print("v2");
 }
 
 static void drawFooter() {
@@ -114,7 +114,7 @@ static void drawFooter() {
   tft.fillRect(0, footerY, tft.width(), 13, tft.color565(15, 15, 25));
   tft.drawFastHLine(0, footerY, tft.width(), MENU_BORDER);
 
-  const char* footer = "w/ caffeine by Debyte";
+  const char* footer = "BACK: Sleep  |  A: Play";
   tft.setTextSize(1);
   tft.setTextColor(MENU_FOOTER);
   int16_t xFooter = (tft.width() - (int)strlen(footer) * 6) / 2;
@@ -129,17 +129,14 @@ static void drawScrollbar() {
   int sbTop = LIST_TOP;
   int sbHeight = LIST_BOTTOM - LIST_TOP;
 
-  // Track
   tft.drawFastVLine(sbX, sbTop, sbHeight, tft.color565(30, 30, 40));
 
-  // Thumb
   int thumbH = max(6, sbHeight * VISIBLE_ITEMS / menuItemCount);
   int thumbY = sbTop + (sbHeight - thumbH) * scrollOffset / max(1, menuItemCount - VISIBLE_ITEMS);
   tft.fillRect(sbX - 1, thumbY, 3, thumbH, MENU_SCROLL);
 }
 
 static void drawMenuList() {
-  // Clear list area
   tft.fillRect(0, LIST_TOP, tft.width() - 5, LIST_BOTTOM - LIST_TOP, MENU_BG);
 
   int y = LIST_TOP + 2;
@@ -149,7 +146,6 @@ static void drawMenuList() {
     if (idx >= menuItemCount) break;
 
     if (menuItems[idx].type == MENU_TYPE_HEADER) {
-      // Category header bar
       tft.fillRect(4, y, tft.width() - 12, HEADER_HEIGHT, MENU_CAT_BAR);
       tft.setTextSize(1);
       tft.setTextColor(MENU_CAT_TXT);
@@ -157,36 +153,31 @@ static void drawMenuList() {
       tft.print(menuItems[idx].label);
       y += HEADER_HEIGHT + 2;
     } else {
-      // Selectable game item
       bool selected = (idx == selectedIndex);
 
       if (selected) {
-        // Rounded highlight bar
         tft.fillRoundRect(6, y, tft.width() - 16, ITEM_HEIGHT, 3, MENU_SEL_BG);
         tft.setTextColor(MENU_SEL_TXT);
 
-        // Animated cursor arrow
         int arrowX = 9;
         tft.setCursor(arrowX, y + 3);
         tft.setTextSize(1);
-        tft.print("\x10"); // ► character
+        tft.print("\x10");
       } else {
         tft.setTextColor(MENU_ITEM);
       }
 
-      // Item label — centered-ish with left padding
       tft.setTextSize(1);
       int labelX = selected ? 20 : 14;
       tft.setCursor(labelX, y + 4);
       tft.print(menuItems[idx].label);
 
-      // Category icon on right side
       if (!selected) {
         uint8_t gi = menuItems[idx].gameIndex;
         if (gi < gameCount && gameRegistry[gi]->category == 1) {
           tft.setTextColor(tft.color565(80, 80, 120));
           tft.setCursor(tft.width() - 22, y + 4);
-          tft.print("~");  // visual indicator for demos
+          tft.print("~");
         }
       }
 
@@ -205,7 +196,7 @@ static int findNextSelectable(int from, int delta) {
     idx = (idx + delta + menuItemCount) % menuItemCount;
     if (menuItems[idx].type == MENU_TYPE_ITEM) return idx;
   }
-  return from; // fallback
+  return from;
 }
 
 static void ensureVisible() {
@@ -218,10 +209,6 @@ static void ensureVisible() {
   }
   if (selectedIndex >= scrollOffset + VISIBLE_ITEMS) {
     scrollOffset = selectedIndex - VISIBLE_ITEMS + 1;
-  }
-  // Don't scroll past header if possible
-  if (scrollOffset > 0 && menuItems[scrollOffset].type == MENU_TYPE_HEADER) {
-    // OK — headers at top of view are fine
   }
   scrollOffset = constrain(scrollOffset, 0, max(0, menuItemCount - VISIBLE_ITEMS));
 }
@@ -253,6 +240,16 @@ inline void handleMenuInput() {
     return;
   }
 
+  // Sleep Trigger: When in home menu, pressing BACK puts console to sleep with solid pitch-black screen
+  if (backPressed()) {
+    Buzzer::play(Buzzer::Sound::Click);
+    powerEngine.enterLightSleep();
+    Buzzer::play(Buzzer::Sound::Confirm);
+    drawMenuFrame();
+    drawMenuList();
+    return;
+  }
+
   Direction dir = readJoystickAutoRepeat(350, 150);
 
   if (dir == DIR_UP) {
@@ -281,6 +278,7 @@ inline void handleMenuInput() {
       if (backPressed()) {
         Buzzer::play(Buzzer::Sound::Click);
         delay(150);
+        CloudUpdater::disconnectAndRestoreEspNow();
         drawMenuFrame();
         drawMenuList();
         break;
@@ -294,7 +292,6 @@ inline void handleMenuInput() {
 inline void initMenu() {
   buildMenuList();
 
-  // Ensure selectedIndex is on a real item
   if (menuItemCount > 0 && menuItems[selectedIndex].type != MENU_TYPE_ITEM) {
     selectedIndex = findNextSelectable(0, 1);
   }

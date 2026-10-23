@@ -1,5 +1,8 @@
 #include "../core/Game.hpp"
 #include "../core/Input.hpp"
+#include "../core/CryptoJournal.hpp"
+#include "../core/PowerStateEngine.hpp"
+#include "../core/RasterEngine.hpp"
 #include <Adafruit_ST7735.h>
 
 extern Adafruit_ST7735 tft;
@@ -18,11 +21,13 @@ struct Point { int x, y; };
 static Point snake[100];
 static int snakeLength = 3;
 static Point food;
-static int dirX = 1, dirY = 0;     // movement direction
-static int lastDirX = 1, lastDirY = 0; // last valid direction (for reversal check)
+static int dirX = 1, dirY = 0;
+static int lastDirX = 1, lastDirY = 0;
 static unsigned long lastMove = 0;
 static int speed = 150;
 static bool gameOver = false;
+static bool sealDrawn = false;
+static String scoreSeal = "";
 
 // === Helpers ===
 inline bool collide(Point a, Point b) { return a.x == b.x && a.y == b.y; }
@@ -45,8 +50,10 @@ inline void resetSnake() {
   }
   placeFood();
   gameOver = false;
+  sealDrawn = false;
   speed = 150;
   tft.fillScreen(COLOR_BG);
+  cryptoJournal.beginSession();
 }
 
 // === Start Function ===
@@ -65,14 +72,37 @@ void startSnake() {
 // === Loop Function ===
 void loopSnake() {
   if (gameOver) {
-    tft.setTextSize(2);
-    tft.setTextColor(ST77XX_RED);
-    tft.setCursor(15, 40);
-    tft.print("Game Over");
-    tft.setTextSize(1);
-    tft.setCursor(20, 65);
-    tft.setTextColor(ST77XX_WHITE);
-    tft.print("Press BACK");
+    if (!sealDrawn) {
+      sealDrawn = true;
+      uint32_t finalScore = (snakeLength > 3) ? (snakeLength - 3) * 10 : 0;
+      powerEngine.updatePersistentHighScore(0, finalScore);
+      scoreSeal = cryptoJournal.generateScoreSeal(finalScore);
+
+      tft.fillRect(6, 26, tft.width() - 12, 82, tft.color565(15, 15, 25));
+      tft.drawRoundRect(6, 26, tft.width() - 12, 82, 4, ST77XX_RED);
+
+      tft.setTextSize(2);
+      tft.setTextColor(ST77XX_RED);
+      tft.setCursor(22, 32);
+      tft.print("Game Over");
+
+      tft.setTextSize(1);
+      tft.setTextColor(ST77XX_WHITE);
+      tft.setCursor(12, 54);
+      tft.printf("Score: %u  Best: %u", finalScore, powerEngine.getPersistentHighScore(0));
+
+      tft.setTextColor(ST77XX_GREEN);
+      tft.setCursor(12, 68);
+      tft.printf("Seal: %s", scoreSeal.c_str());
+
+      tft.setTextColor(tft.color565(140, 140, 170));
+      tft.setCursor(12, 82);
+      tft.print("Verified Chained SHA256");
+
+      tft.setTextColor(ST77XX_WHITE);
+      tft.setCursor(12, 94);
+      tft.print("Press BACK to Menu");
+    }
     return;
   }
 
@@ -109,6 +139,10 @@ void loopSnake() {
     }
   }
 
+  // Erase old tail
+  Point oldTail = snake[snakeLength - 1];
+  drawCell(oldTail, COLOR_BG);
+
   // === Move snake ===
   for (int i = snakeLength - 1; i > 0; i--) {
     snake[i] = snake[i - 1];
@@ -119,15 +153,14 @@ void loopSnake() {
   if (collide(snake[0], food)) {
     if (snakeLength < 99) snakeLength++;
     speed = max(50, speed - 5);
+    uint32_t currentScore = (snakeLength - 3) * 10;
+    cryptoJournal.recordEvent(0x01, 10, currentScore);
     placeFood();
   }
 
-  // === Draw frame ===
-  tft.fillScreen(COLOR_BG);
+  // Draw food & head
   drawCell(food, COLOR_FOOD);
-  for (int i = 0; i < snakeLength; i++) {
-    drawCell(snake[i], COLOR_SNAKE);
-  }
+  drawCell(snake[0], COLOR_SNAKE);
 
   // Remember last direction
   lastDirX = dirX;

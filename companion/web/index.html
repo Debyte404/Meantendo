@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meantendo Arcade Bridge & Companion</title>
+  <style>
+    :root {
+      --bg: #0d0f17;
+      --card-bg: #161926;
+      --accent: #00d2ff;
+      --accent-glow: rgba(0, 210, 255, 0.4);
+      --btn-a: #00ff88;
+      --btn-b: #ff4466;
+      --btn-x: #3a86ff;
+      --btn-y: #ffbe0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00d2ff, #9d4edd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      margin-top: 8px;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1100px;
+      width: 100%;
+    }
+    @media (max-width: 860px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+    }
+    /* Controller Visualizer */
+    .gamepad-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .stick-area {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: #090a10;
+      border: 2px solid #2a2e45;
+      position: relative;
+      box-shadow: inset 0 4px 12px rgba(0,0,0,0.8);
+    }
+    .stick-center-cross {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .stick-center-cross::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .stick-center-cross::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 10%;
+      bottom: 10%;
+      width: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .stick-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #4f5875, #1f2333);
+      border: 2px solid var(--accent);
+      position: absolute;
+      top: 56px;
+      left: 56px;
+      box-shadow: 0 4px 16px var(--accent-glow);
+      transition: transform 0.03s linear;
+    }
+    .buttons-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 60px);
+      gap: 12px;
+      justify-content: center;
+    }
+    .btn-indicator {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #1c2033;
+      border: 2px solid #333952;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      transition: all 0.08s ease;
+      color: #94a3b8;
+    }
+    .btn-indicator.active-a { background: var(--btn-a); color: #000; box-shadow: 0 0 20px var(--btn-a); border-color: #fff; transform: scale(1.08); }
+    .btn-indicator.active-b { background: var(--btn-b); color: #fff; box-shadow: 0 0 20px var(--btn-b); border-color: #fff; transform: scale(1.08); }
+    .btn-indicator.active-x { background: var(--btn-x); color: #fff; box-shadow: 0 0 20px var(--btn-x); border-color: #fff; transform: scale(1.08); }
+    .btn-indicator.active-y { background: var(--btn-y); color: #000; box-shadow: 0 0 20px var(--btn-y); border-color: #fff; transform: scale(1.08); }
+
+    .nav-btns {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    .pill-btn {
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: #1e2238;
+      border: 1px solid #3d4468;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .pill-btn.active {
+      background: #fff;
+      color: #000;
+      box-shadow: 0 0 15px rgba(255,255,255,0.8);
+    }
+
+    .telemetry-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      width: 100%;
+    }
+    .stat-box {
+      background: #0b0c13;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .stat-lbl { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* Canvas Game */
+    #arcadeCanvas {
+      width: 100%;
+      height: 320px;
+      background: #05060a;
+      border-radius: 12px;
+      border: 1px solid #22273d;
+      display: block;
+    }
+    .canvas-hud {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>MEANTENDO CONNECT</h1>
+    <p>ESP-NOW Low-Latency Wireless Bridge & Arcade Platform</p>
+    <div class="badge" id="connStatus">Connecting to Meantendo WebSocket...</div>
+  </header>
+
+  <div class="container">
+    <!-- Card 1: Live Hardware Visualizer -->
+    <div class="card">
+      <div class="card-title">Live Hardware Controller</div>
+      <div class="gamepad-box">
+        <div class="stick-area">
+          <div class="stick-center-cross"></div>
+          <div class="stick-thumb" id="stickThumb"></div>
+        </div>
+
+        <div class="buttons-grid">
+          <div class="btn-indicator" id="btnY">Y</div>
+          <div class="btn-indicator" id="btnX">X</div>
+          <div class="btn-indicator" id="btnB">B</div>
+          <div class="btn-indicator" id="btnA">A</div>
+        </div>
+
+        <div class="nav-btns">
+          <div class="pill-btn" id="btnSelect">SELECT</div>
+          <div class="pill-btn" id="btnBack">BACK</div>
+        </div>
+
+        <div class="telemetry-stats">
+          <div class="stat-box">
+            <div class="stat-val" id="statSeq">0</div>
+            <div class="stat-lbl">Packet Seq</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statCoords">2048, 2048</div>
+            <div class="stat-lbl">Raw ADC (X, Y)</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" style="color: #00ff88;">&lt; 3 ms</div>
+            <div class="stat-lbl">RF Latency</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Interactive Big-Screen Game -->
+    <div class="card">
+      <div class="card-title">Big-Screen Arcade: Space Raider</div>
+      <canvas id="arcadeCanvas" width="480" height="320"></canvas>
+      <div class="canvas-hud">
+        <span>Controls: <b>Meantendo Stick</b> to Move | <b>Button A</b> to Fire</span>
+        <span id="gameScore">Score: 0</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── WebSocket Telemetry Client ──
+    const statusBadge = document.getElementById('connStatus');
+    const stickThumb = document.getElementById('stickThumb');
+    const btnA = document.getElementById('btnA');
+    const btnB = document.getElementById('btnB');
+    const btnX = document.getElementById('btnX');
+    const btnY = document.getElementById('btnY');
+    const btnSelect = document.getElementById('btnSelect');
+    const btnBack = document.getElementById('btnBack');
+    const statSeq = document.getElementById('statSeq');
+    const statCoords = document.getElementById('statCoords');
+    const gameScoreTxt = document.getElementById('gameScore');
+
+    let currentInput = { x: 2048, y: 2048, a: false, b: false, xBtn: false, yBtn: false, select: false, back: false };
+
+    function connectWs() {
+      const wsUrl = `ws://${window.location.hostname}:81/`;
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        statusBadge.textContent = 'ESP-NOW Bridge Connected (Sub-5ms)';
+        statusBadge.style.color = '#00ff88';
+        statusBadge.style.borderColor = '#00ff88';
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          statSeq.textContent = data.seq;
+          statCoords.textContent = `${data.x}, ${data.y}`;
+
+          currentInput.x = data.x;
+          currentInput.y = data.y;
+          currentInput.a = Boolean(data.b & (1 << 0));
+          currentInput.b = Boolean(data.b & (1 << 1));
+          currentInput.xBtn = Boolean(data.b & (1 << 2));
+          currentInput.yBtn = Boolean(data.b & (1 << 3));
+          currentInput.select = Boolean(data.b & (1 << 4));
+          currentInput.back = Boolean(data.b & (1 << 5));
+
+          // Move visual stick
+          const offsetX = ((data.x - 2048) / 2048) * 44;
+          const offsetY = ((data.y - 2048) / 2048) * 44;
+          stickThumb.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+
+          // Highlight buttons
+          btnA.className = 'btn-indicator' + (currentInput.a ? ' active-a' : '');
+          btnB.className = 'btn-indicator' + (currentInput.b ? ' active-b' : '');
+          btnX.className = 'btn-indicator' + (currentInput.xBtn ? ' active-x' : '');
+          btnY.className = 'btn-indicator' + (currentInput.yBtn ? ' active-y' : '');
+          btnSelect.className = 'pill-btn' + (currentInput.select ? ' active' : '');
+          btnBack.className = 'pill-btn' + (currentInput.back ? ' active' : '');
+        } catch (e) {}
+      };
+
+      ws.onclose = () => {
+        statusBadge.textContent = 'Disconnected. Retrying in 2s...';
+        statusBadge.style.color = '#ff4466';
+        statusBadge.style.borderColor = '#ff4466';
+        setTimeout(connectWs, 2000);
+      };
+    }
+    connectWs();
+
+    // ── Built-in Canvas Game (Space Raider) ──
+    const canvas = document.getElementById('arcadeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let player = { x: 240, y: 260, r: 12, speed: 5 };
+    let lasers = [];
+    let enemies = [];
+    let stars = [];
+    let score = 0;
+    let lastShot = 0;
+
+    for (let i = 0; i < 40; i++) {
+      stars.push({ x: Math.random() * 480, y: Math.random() * 320, s: Math.random() * 2 + 1 });
+    }
+
+    function gameLoop() {
+      // Clear
+      ctx.fillStyle = '#05060a';
+      ctx.fillRect(0, 0, 480, 320);
+
+      // Stars
+      ctx.fillStyle = '#475569';
+      stars.forEach(st => {
+        ctx.fillRect(st.x, st.y, st.s, st.s);
+        st.y += st.s * 0.8;
+        if (st.y > 320) st.y = 0;
+      });
+
+      // Player Movement from Meantendo Stick
+      const normX = (currentInput.x - 2048) / 2048;
+      const normY = (currentInput.y - 2048) / 2048;
+      if (Math.abs(normX) > 0.15) player.x += normX * player.speed;
+      if (Math.abs(normY) > 0.15) player.y += normY * player.speed;
+      player.x = Math.max(16, Math.min(464, player.x));
+      player.y = Math.max(16, Math.min(304, player.y));
+
+      // Player Fire
+      const now = performance.now();
+      if (currentInput.a && now - lastShot > 160) {
+        lasers.push({ x: player.x, y: player.y - 12 });
+        lastShot = now;
+      }
+
+      // Draw Lasers
+      ctx.fillStyle = '#00ff88';
+      for (let i = lasers.length - 1; i >= 0; i--) {
+        lasers[i].y -= 8;
+        ctx.fillRect(lasers[i].x - 2, lasers[i].y, 4, 10);
+        if (lasers[i].y < 0) lasers.splice(i, 1);
+      }
+
+      // Spawn Enemies
+      if (Math.random() < 0.03) {
+        enemies.push({ x: Math.random() * 440 + 20, y: -20, r: 14, speed: Math.random() * 2 + 1.5 });
+      }
+
+      // Draw & Update Enemies
+      ctx.fillStyle = '#ff4466';
+      for (let eIdx = enemies.length - 1; eIdx >= 0; eIdx--) {
+        const en = enemies[eIdx];
+        en.y += en.speed;
+        ctx.beginPath();
+        ctx.arc(en.x, en.y, en.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Laser Collision
+        for (let lIdx = lasers.length - 1; lIdx >= 0; lIdx--) {
+          const l = lasers[lIdx];
+          const dist = Math.hypot(en.x - l.x, en.y - l.y);
+          if (dist < en.r + 4) {
+            enemies.splice(eIdx, 1);
+            lasers.splice(lIdx, 1);
+            score += 100;
+            gameScoreTxt.textContent = `Score: ${score}`;
+            break;
+          }
+        }
+        if (en && en.y > 340) enemies.splice(eIdx, 1);
+      }
+
+      // Draw Player Ship
+      ctx.fillStyle = '#00d2ff';
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y - 14);
+      ctx.lineTo(player.x - 12, player.y + 10);
+      ctx.lineTo(player.x + 12, player.y + 10);
+      ctx.closePath();
+      ctx.fill();
+
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

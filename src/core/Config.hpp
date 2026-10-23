@@ -4,7 +4,7 @@
 //  Meantendo Configuration & Cloud OTA Settings
 // ═══════════════════════════════════════════════════════════
 
-#define MEANTENDO_VERSION         "v2.0.0"
+#define MEANTENDO_VERSION         "v2.1.0"
 #define MEANTENDO_GITHUB_OWNER    "Debyte404"
 #define MEANTENDO_GITHUB_REPO     "Meantendo"
 #define MEANTENDO_ASSET_NAME      "firmware.bin"

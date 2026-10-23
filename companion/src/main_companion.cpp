@@ -4,13 +4,13 @@
 #include <esp_wifi.h>
 
 // ═══════════════════════════════════════════════════════════
-//  Meantendo Companion — True Peer-to-Peer Node (Player 2)
-//  - Direct ESP-NOW on Channel 1 (Sub-2ms Deterministic Telemetry)
-//  - Two Input Modes:
-//      A) Physical Controls: Joystick on GPIO 34/35, Buttons on 32/33/26/27
-//      B) Serial Keyboard: WASD for Joystick, J/K/U/I for A/B/X/Y
-//      C) Auto-Bot Mode: Type 'b' to toggle smooth AI Player 2
-//  - Bidirectional Telemetry: Receives Player 1 inputs & sends Player 2 inputs
+//  Meantendo Companion — True Peer-to-Peer Multiplayer Node
+//  - Direct ESP-NOW on Channel 1 (Sub-2ms Deterministic Sync)
+//  - Two-Way Peer Sync: Receives ball coordinates, scores & P1 paddle;
+//    sends P2 paddle back in real-time.
+//  - Auto-Bot AI by default (smoothly tracks ball to play as P2)
+//  - Interactive Laptop Keyboard (WASD) in Serial Monitor
+//  - Live ASCII Terminal Display on Laptop
 // ═══════════════════════════════════════════════════════════
 
 struct __attribute__((packed)) MeantendoTelemetry {
@@ -20,39 +20,48 @@ struct __attribute__((packed)) MeantendoTelemetry {
     int16_t  joyY;       // Filtered Y coordinate (0-4095)
     uint8_t  buttons;    // Bitfield: [0:A, 1:B, 2:X, 3:Y, 4:SELECT, 5:BACK]
     uint8_t  battery;    // Battery / power indicator (0-100 or status)
+    uint8_t  gameId;     // 0=Menu, 1=Pong, 2=Snake
+    uint8_t  ballX;      // Ball X (0-160)
+    uint8_t  ballY;      // Ball Y (0-128)
+    uint8_t  scoreP1;    // Player 1 score
+    uint8_t  scoreP2;    // Player 2 score
+    uint8_t  extra;      // Reserved
     uint16_t checksum;   // Simple checksum
 };
 
-// GPIO Pins matching standard Meantendo wiring
 #define PIN_JOY_X   34
 #define PIN_JOY_Y   35
 #define PIN_BTN_A   32
 #define PIN_BTN_B   33
 #define PIN_BTN_X   26
 #define PIN_BTN_Y   27
-#define PIN_BTN_SEL 19
-#define PIN_BTN_BCK 25
 
 static uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-// Local Player 2 State
+// Player 2 Local State (Companion)
 static int16_t  p2JoyX = 2048;
 static int16_t  p2JoyY = 2048;
 static uint8_t  p2Buttons = 0;
 static uint16_t p2Seq = 0;
 static uint32_t p2PacketsSent = 0;
 
-// Remote Player 1 (Meantendo Console) State
+// Player 1 Remote State (Meantendo Console)
 static volatile int16_t  p1JoyX = 2048;
 static volatile int16_t  p1JoyY = 2048;
 static volatile uint8_t  p1Buttons = 0;
+static volatile uint8_t  p1GameId = 0;
+static volatile uint8_t  p1BallX = 80;
+static volatile uint8_t  p1BallY = 64;
+static volatile uint8_t  p1ScoreP1 = 0;
+static volatile uint8_t  p1ScoreP2 = 0;
 static volatile uint16_t p1Seq = 0;
 static volatile uint32_t p1PacketsRecv = 0;
 static volatile unsigned long lastP1PacketTime = 0;
 
-// Operational Modes
-static bool autoBotMode = false;
-static bool hasPhysicalControls = false;
+// Active Modes
+static bool autoBotMode = true; // Auto-Bot is ON by default so P2 plays immediately
+static int initialAdcX = 0;
+static int initialAdcY = 0;
 
 static uint16_t calcChecksum(const MeantendoTelemetry &pkt) {
     const uint8_t *bytes = reinterpret_cast<const uint8_t*>(&pkt);
@@ -73,6 +82,11 @@ void onDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
     p1JoyX = pkt->joyX;
     p1JoyY = pkt->joyY;
     p1Buttons = pkt->buttons;
+    p1GameId = pkt->gameId;
+    p1BallX = pkt->ballX;
+    p1BallY = pkt->ballY;
+    p1ScoreP1 = pkt->scoreP1;
+    p1ScoreP2 = pkt->scoreP2;
     p1Seq = pkt->seq;
     p1PacketsRecv++;
     lastP1PacketTime = millis();
@@ -82,28 +96,13 @@ void setup() {
     Serial.begin(115200);
     delay(500);
 
-    Serial.println("\n╔═══════════════════════════════════════════════════════╗");
-    Serial.println("║   MEANTENDO COMPANION — PEER CONSOLE / CONTROLLER 2   ║");
-    Serial.println("╚═══════════════════════════════════════════════════════╝");
+    Serial.println("\n╔══════════════════════════════════════════════════════════════════╗");
+    Serial.println("║   MEANTENDO COMPANION — TRUE P2P MULTIPLAYER PEER NODE          ║");
+    Serial.println("╚══════════════════════════════════════════════════════════════════╝");
 
-    // Initialize physical GPIOs with pullups
-    pinMode(PIN_BTN_A, INPUT_PULLUP);
-    pinMode(PIN_BTN_B, INPUT_PULLUP);
-    pinMode(PIN_BTN_X, INPUT_PULLUP);
-    pinMode(PIN_BTN_Y, INPUT_PULLUP);
-    pinMode(PIN_BTN_SEL, INPUT_PULLUP);
-    pinMode(PIN_BTN_BCK, INPUT_PULLUP);
-
-    // Check if analog joystick appears to be wired (resting near ~2048 +/- 1200)
-    int testX = analogRead(PIN_JOY_X);
-    int testY = analogRead(PIN_JOY_Y);
-    if (testX > 500 && testX < 3500 && testY > 500 && testY < 3500) {
-        hasPhysicalControls = true;
-        Serial.printf("[HW] Physical Joystick Detected! (X=%d, Y=%d)\n", testX, testY);
-    } else {
-        hasPhysicalControls = false;
-        Serial.println("[HW] No physical joystick detected; Serial Keyboard active!");
-    }
+    // Sample initial ADC to ignore floating pins if no real joystick is attached
+    initialAdcX = analogRead(PIN_JOY_X);
+    initialAdcY = analogRead(PIN_JOY_Y);
 
     // 1. Direct Wi-Fi Station Mode on Channel 1
     WiFi.mode(WIFI_STA);
@@ -125,62 +124,70 @@ void setup() {
         if (esp_now_add_peer(&peerInfo) != ESP_OK) {
             Serial.println("[ERR] Failed to add broadcast peer!");
         } else {
-            Serial.println("[OK] ESP-NOW initialized on Channel 1 (Peer-to-Peer)");
+            Serial.println("[OK] ESP-NOW Peer-to-Peer active on Channel 1 (TX/RX)");
         }
     }
 
-    Serial.println("\n── CONTROLS GUIDE ──────────────────────────────────────");
-    Serial.println(" • W / S : Joystick UP / DOWN  (P2 Paddle in Pong)");
-    Serial.println(" • A / D : Joystick LEFT / RIGHT");
-    Serial.println(" • J / K : Button A / Button B");
-    Serial.println(" • U / I : Button X / Button Y");
-    Serial.println(" • SPACE : Center Joystick & Release Buttons");
-    Serial.println(" • B     : Toggle Auto-Bot (AI Player 2 Mode)");
-    Serial.println("────────────────────────────────────────────────────────\n");
+    Serial.println("\n── CONTROLS & DISPLAY GUIDE ────────────────────────────────────");
+    Serial.println(" • AUTO-BOT AI: Active by default (tracks ball and returns it)");
+    Serial.println(" • W / S      : Keyboard Manual Control (P2 Paddle UP / DOWN)");
+    Serial.println(" • A / D      : P2 Left / Right");
+    Serial.println(" • B          : Toggle Auto-Bot AI vs Manual Keyboard");
+    Serial.println(" • SPACE      : Reset Paddle to Center");
+    Serial.println("────────────────────────────────────────────────────────────────\n");
 }
 
 void loop() {
-    // 1. Handle Serial Keyboard Input
+    // 1. Handle Serial Keyboard Input from Laptop
     if (Serial.available()) {
         char c = Serial.read();
         switch (c) {
-            case 'w': case 'W': p2JoyY = max(0, p2JoyY - 600); break;
-            case 's': case 'S': p2JoyY = min(4095, p2JoyY + 600); break;
-            case 'a': case 'A': p2JoyX = max(0, p2JoyX - 600); break;
-            case 'd': case 'D': p2JoyX = min(4095, p2JoyX + 600); break;
-            case ' ':           p2JoyX = 2048; p2JoyY = 2048; p2Buttons = 0; break;
-            case 'j': case 'J': p2Buttons ^= (1 << 0); break; // Toggle A
-            case 'k': case 'K': p2Buttons ^= (1 << 1); break; // Toggle B
-            case 'u': case 'U': p2Buttons ^= (1 << 2); break; // Toggle X
-            case 'i': case 'I': p2Buttons ^= (1 << 3); break; // Toggle Y
+            case 'w': case 'W':
+                autoBotMode = false;
+                p2JoyY = max(200, p2JoyY - 600);
+                Serial.println("[INPUT] Manual UP (W) -> P2 Paddle moved UP");
+                break;
+            case 's': case 'S':
+                autoBotMode = false;
+                p2JoyY = min(3895, p2JoyY + 600);
+                Serial.println("[INPUT] Manual DOWN (S) -> P2 Paddle moved DOWN");
+                break;
+            case 'a': case 'A': p2JoyX = max(200, p2JoyX - 600); break;
+            case 'd': case 'D': p2JoyX = min(3895, p2JoyX + 600); break;
+            case ' ':
+                p2JoyX = 2048; p2JoyY = 2048; p2Buttons = 0;
+                break;
             case 'b': case 'B':
                 autoBotMode = !autoBotMode;
-                Serial.printf("\n>>> AUTO-BOT AI MODE: %s <<<\n\n", autoBotMode ? "ENABLED (Auto-playing P2)" : "DISABLED (Manual controls)");
+                Serial.printf("\n>>> [MODE SWITCH] Auto-Bot AI: %s <<<\n\n",
+                              autoBotMode ? "ENABLED (AI playing P2)" : "DISABLED (Manual keyboard)");
                 break;
             default: break;
         }
     }
 
-    // 2. Read Physical Pins if available
-    if (hasPhysicalControls) {
-        p2JoyX = 4095 - analogRead(PIN_JOY_Y);
-        p2JoyY = analogRead(PIN_JOY_X);
-        p2Buttons = 0;
-        if (digitalRead(PIN_BTN_A) == LOW)   p2Buttons |= (1 << 0);
-        if (digitalRead(PIN_BTN_B) == LOW)   p2Buttons |= (1 << 1);
-        if (digitalRead(PIN_BTN_X) == LOW)   p2Buttons |= (1 << 2);
-        if (digitalRead(PIN_BTN_Y) == LOW)   p2Buttons |= (1 << 3);
-        if (digitalRead(PIN_BTN_SEL) == LOW) p2Buttons |= (1 << 4);
-        if (digitalRead(PIN_BTN_BCK) == LOW) p2Buttons |= (1 << 5);
+    // 2. Physical joystick check (only if values deviate significantly from initial float)
+    int curAdcX = analogRead(PIN_JOY_X);
+    int curAdcY = analogRead(PIN_JOY_Y);
+    if (abs(curAdcX - initialAdcX) > 400 || abs(curAdcY - initialAdcY) > 400) {
+        autoBotMode = false;
+        p2JoyX = 4095 - curAdcY;
+        p2JoyY = curAdcX;
     }
 
-    // 3. Auto-Bot AI (Simulates human Player 2 tracking when enabled)
+    // 3. Auto-Bot AI — Tracks Pong Ball dynamically!
     if (autoBotMode) {
-        float angle = (millis() % 2400) * (2.0f * 3.14159f / 2400.0f);
-        p2JoyY = 2048 + (int)(1500.0f * sin(angle));
-        p2JoyX = 2048 + (int)(800.0f * cos(angle));
-        int phase = (millis() / 500) % 4;
-        p2Buttons = (1 << phase);
+        if (p1GameId == 1) { // In Pong match
+            // Map 0-128 ball Y to 0-4095 joystick range
+            int targetJoyY = map(p1BallY, 10, 118, 400, 3695);
+            // Move smoothly towards target
+            int diff = targetJoyY - p2JoyY;
+            p2JoyY += constrain(diff, -180, 180);
+        } else {
+            // General idle wandering when not in Pong
+            float angle = (millis() % 2000) * (2.0f * 3.14159f / 2000.0f);
+            p2JoyY = 2048 + (int)(1400.0f * sin(angle));
+        }
     }
 
     // 4. Transmit Player 2 Telemetry at 60 Hz (~16ms)
@@ -195,6 +202,12 @@ void loop() {
         txPkt.joyY = p2JoyY;
         txPkt.buttons = p2Buttons;
         txPkt.battery = 100;
+        txPkt.gameId = p1GameId;
+        txPkt.ballX = p1BallX;
+        txPkt.ballY = p1BallY;
+        txPkt.scoreP1 = p1ScoreP1;
+        txPkt.scoreP2 = p1ScoreP2;
+        txPkt.extra = autoBotMode ? 1 : 0;
         txPkt.checksum = calcChecksum(txPkt);
 
         if (esp_now_send(broadcastMac, reinterpret_cast<uint8_t*>(&txPkt), sizeof(txPkt)) == ESP_OK) {
@@ -202,30 +215,36 @@ void loop() {
         }
     }
 
-    // 5. Periodic Diagnostic Console (Every 1000ms)
-    static unsigned long lastLog = 0;
-    if (millis() - lastLog >= 1000) {
-        lastLog = millis();
-
+    // 5. Live ASCII Terminal Display (Updates every 300ms)
+    static unsigned long lastDisplay = 0;
+    if (millis() - lastDisplay >= 300) {
+        lastDisplay = millis();
         bool p1Connected = (millis() - lastP1PacketTime < 1000);
 
-        char p1BtnStr[32] = "";
-        if (p1Buttons & (1 << 0)) strcat(p1BtnStr, "A ");
-        if (p1Buttons & (1 << 1)) strcat(p1BtnStr, "B ");
-        if (p1Buttons & (1 << 2)) strcat(p1BtnStr, "X ");
-        if (p1Buttons & (1 << 3)) strcat(p1BtnStr, "Y ");
+        if (p1Connected && p1GameId == 1) {
+            // Live 2-Player Pong ASCII Match Visualizer!
+            int courtWidth = 32;
+            int bPos = map(p1BallX, 0, 160, 1, courtWidth - 2);
+            bPos = constrain(bPos, 1, courtWidth - 2);
 
-        char p2BtnStr[32] = "";
-        if (p2Buttons & (1 << 0)) strcat(p2BtnStr, "A ");
-        if (p2Buttons & (1 << 1)) strcat(p2BtnStr, "B ");
-        if (p2Buttons & (1 << 2)) strcat(p2BtnStr, "X ");
-        if (p2Buttons & (1 << 3)) strcat(p2BtnStr, "Y ");
+            char court[40];
+            memset(court, ' ', courtWidth);
+            court[0] = '|';
+            court[courtWidth - 1] = '|';
+            court[bPos] = 'O';
+            court[courtWidth] = '\0';
 
-        if (p1Connected) {
-            Serial.printf("[PEER-LINK: OK] P1 (Meantendo): Y=%4d Btns:[%s] RX#%u | P2 (Companion): Y=%4d Btns:[%s] TX#%u\n",
-                          p1JoyY, p1BtnStr, p1PacketsRecv, p2JoyY, p2BtnStr, p2PacketsSent);
+            Serial.printf("[P1: %d | P2: %d] %s  [P1:Y=%3d | P2:Y=%3d] %s\n",
+                          p1ScoreP1, p1ScoreP2, court,
+                          map(p1JoyY, 0, 4095, 10, 108),
+                          map(p2JoyY, 0, 4095, 10, 108),
+                          autoBotMode ? "[AI TRACKING]" : "[MANUAL]");
+        } else if (p1Connected) {
+            Serial.printf("[PEER-LINK: OK] Connected to Meantendo! RX#%u | TX#%u | Mode: %s\n",
+                          p1PacketsRecv, p2PacketsSent,
+                          autoBotMode ? "Auto-Bot AI" : "Manual");
         } else {
-            Serial.printf("[PEER-LINK: WAITING] Transmitting P2 Telemetry (TX#%u) | Waiting for Meantendo Console packets on Channel 1...\n",
+            Serial.printf("[PEER-LINK: SEARCHING] TX#%u | Waiting for Meantendo Console on Channel 1...\n",
                           p2PacketsSent);
         }
     }

@@ -138,6 +138,18 @@ void loopPong() {
       if (xPressed()) rightPaddle.y -= 3;
       else if (yPressed()) rightPaddle.y += 3;
     }
+
+    // Broadcast live match state to companion node (ball X/Y, scores, P1 paddle)
+    MeantendoWireless::sendGameState(
+        1,
+        (uint8_t)constrain(ball.x, 0, 255),
+        (uint8_t)constrain(ball.y, 0, 255),
+        (uint8_t)leftScore,
+        (uint8_t)rightScore,
+        2048,
+        map(leftPaddle.y, 10, tft.height() - PADDLE_H, 0, 4095),
+        0
+    );
   }
 
   // Bound paddles

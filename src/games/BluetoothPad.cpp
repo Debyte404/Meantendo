@@ -21,13 +21,36 @@ static bool wasConnected = false;
 void stopBluetoothPad() {
     NimBLEServer* pServer = NimBLEDevice::getServer();
     if (pServer) {
-        for (uint16_t handle : pServer->getPeerDevices()) {
+        // 1. Prevent NimBLE from auto-restarting advertising when disconnect fires
+        pServer->advertiseOnDisconnect(false);
+
+        // 2. Stop any active advertising immediately so host cannot rediscover/reconnect
+        pServer->stopAdvertising();
+        NimBLEAdvertising* pAdv = NimBLEDevice::getAdvertising();
+        if (pAdv) {
+            pAdv->stop();
+        }
+
+        // 3. Send disconnect signal to all connected peer devices (laptop, PC, phone)
+        std::vector<uint16_t> peers = pServer->getPeerDevices();
+        for (uint16_t handle : peers) {
             pServer->disconnect(handle, BLE_ERR_REM_USER_CONN_TERM);
         }
-        if (pServer->getAdvertising()) {
-            pServer->getAdvertising()->stop();
+
+        // 4. Wait up to 300ms for disconnect packets to complete over the air
+        unsigned long startWait = millis();
+        while (pServer->getConnectedCount() > 0 && (millis() - startWait < 300)) {
+            delay(10);
         }
-        Serial.println("[BT] Gamepad disconnected and advertising halted");
+
+        // 5. Ensure advertising is definitively halted
+        pServer->stopAdvertising();
+        if (pAdv) {
+            pAdv->stop();
+        }
+
+        wasConnected = false;
+        Serial.println("[BT] Gamepad disconnected, advertising completely halted");
     }
 }
 
@@ -78,8 +101,13 @@ static void startBluetoothPad() {
         bleStarted = true;
     } else {
         NimBLEServer* pServer = NimBLEDevice::getServer();
-        if (pServer && pServer->getAdvertising()) {
-            pServer->getAdvertising()->start();
+        if (pServer) {
+            pServer->advertiseOnDisconnect(true);
+            pServer->startAdvertising();
+            NimBLEAdvertising* pAdv = NimBLEDevice::getAdvertising();
+            if (pAdv) {
+                pAdv->start();
+            }
         }
     }
 

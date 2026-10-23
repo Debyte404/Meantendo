@@ -4,6 +4,7 @@
 #include "../core/Config.hpp"
 #include <Adafruit_ST7735.h>
 #include <BleGamepad.h>
+#include <NimBLEDevice.h>
 
 extern Adafruit_ST7735 tft;
 
@@ -18,11 +19,15 @@ static bool bleStarted = false;
 static bool wasConnected = false;
 
 void stopBluetoothPad() {
-    if (bleStarted) {
-        bleGamepad.end();
-        bleStarted = false;
-        btStop();
-        Serial.println("[BT] Gamepad disconnected and BLE radio powered OFF");
+    NimBLEServer* pServer = NimBLEDevice::getServer();
+    if (pServer) {
+        for (uint16_t handle : pServer->getPeerDevices()) {
+            pServer->disconnect(handle, BLE_ERR_REM_USER_CONN_TERM);
+        }
+        if (pServer->getAdvertising()) {
+            pServer->getAdvertising()->stop();
+        }
+        Serial.println("[BT] Gamepad disconnected and advertising halted");
     }
 }
 
@@ -69,10 +74,13 @@ static void drawBlePadFrame() {
 
 static void startBluetoothPad() {
     if (!bleStarted) {
-        btStart();
-        // Standard generic BLE HID configuration -- universally accepted by Windows, Mac, Android, and Gamepad-Tester
         bleGamepad.begin();
         bleStarted = true;
+    } else {
+        NimBLEServer* pServer = NimBLEDevice::getServer();
+        if (pServer && pServer->getAdvertising()) {
+            pServer->getAdvertising()->start();
+        }
     }
 
     wasConnected = false;

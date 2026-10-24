@@ -115,7 +115,7 @@ The physical apparatus was benchmarked across multi-session operational cycles:
 1. **Transducer Rebound Suppression Characterization:**
    - *Test Procedure:* Analog potentiometric gimbal deflected to maximum travel (ADC 4095) and released abruptly ("flick test").
    - *Unfiltered Baseline:* Mechanical spring recoil produced a reverse voltage spike reaching ADC 1200 (an overshoot of 848 ADC counts past the 2048 center into the opposing quadrant), triggering false reverse actuations.
-   - *Present Invention:* Kinematic state machine detected the recoil trajectory within 2 milliseconds of deadzone entry; coordinate values clamped to neutral center (2048) for the 50ms window; 0 false reverse commands registered; forward strokes experienced 0ms added phase delay.
+   - *Present Invention:* Kinematic state machine detected the recoil trajectory within 2 milliseconds of deadzone entry; coordinate values clamped to neutral center (2048) for the calibrated 85ms window (50–85ms range); 0 false reverse commands registered; forward strokes experienced 0ms added phase delay.
 2. **RF Telemetry Airtime & Reliability:**
    - *Test Procedure:* 60 Hz bidirectional telemetry exchange between primary handheld apparatus and secondary companion node over dedicated Channel 1.
    - *Airtime Measurement:* One-way physical packet transmission airtime across the air measured at **1.42 ms average** (well within the 16.7 ms frame interval of a 60 Hz interactive loop).
@@ -145,7 +145,7 @@ WE CLAIM:
      d) conditionally apply an asymmetric directional filter that clamps coordinate values in said opposing quadrant to said neutral position during a calibrated temporal rebound window (τ_r) while providing zero-latency passthrough for operator-directed displacement away from said neutral position; and
      e) output conditioned coordinate values for interactive control.
 
-2. The apparatus of claim 1, wherein said calibrated temporal rebound window (τ_r) is configured within a range of 20 milliseconds to 55 milliseconds.
+2. The apparatus of claim 1, wherein said calibrated temporal rebound window (τ_r) is configured within a range of 20 milliseconds to 85 milliseconds (calibrated nominal duration: 85 milliseconds).
 
 3. The apparatus of claim 1, wherein said processing unit is configured to abort coordinate clamping within said temporal rebound window if an outward displacement in said opposing quadrant exceeding an intentional override threshold is detected.
 

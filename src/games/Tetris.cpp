@@ -264,6 +264,9 @@ void loopTetris() {
       spawnPiece();
     }
   }
+
+  // Frame pacing: maintain smooth ~80 FPS and prevent unthrottled loop ADC noise
+  delay(12);
 }
 
 GameDef tetrisGame = { "Tetris", startTetris, loopTetris, 0 };

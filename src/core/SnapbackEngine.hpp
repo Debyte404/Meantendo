@@ -12,14 +12,15 @@ class SnapbackAxisFilter {
 public:
     int center = 2048;
     int deadzone = 400;
-    int largeDeflectionThresh = 800;    // counts away from center
-    int snapbackVelocityThresh = 25;    // counts per ms towards center
-    unsigned long reboundWindowMs = 50; // suppression window duration
-    int intentionalThresh = 1300;       // counts away from center to override suppression
+    int largeDeflectionThresh = 480;    // counts away from center (just beyond 400 deadzone)
+    int snapbackVelocityThresh = 20;    // counts per ms towards center
+    unsigned long reboundWindowMs = 85; // suppression window duration (covers mechanical spring recoil)
+    int intentionalThresh = 1200;       // counts away from center to override suppression
 
     int lastRaw = 2048;
     int filteredVal = 2048;
-    unsigned long lastTime = 0;
+    unsigned long lastTimeUs = 0;
+    int currentVelocity = 0;
     int originSide = 0;                 // -1 = negative, +1 = positive, 0 = neutral
     unsigned long reboundStartTime = 0;
     bool inReboundState = false;
@@ -34,11 +35,18 @@ public:
 
     int update(int raw, unsigned long nowMs) {
         int delta = raw - center;
-        unsigned long dt = (lastTime == 0) ? 1 : (nowMs - lastTime);
-        if (dt == 0) dt = 1;
-        int velocity = (raw - lastRaw) / (int)dt; // rate of change in counts/ms
+        unsigned long nowUs = micros();
+        unsigned long dtUs = (lastTimeUs == 0) ? 2000 : (nowUs - lastTimeUs);
 
-        // 1. Deflection Detection
+        // Recompute velocity when at least 1.5ms has elapsed to avoid microsecond loop division noise
+        if (dtUs >= 1500) {
+            currentVelocity = (int)(((long)(raw - lastRaw) * 1000L) / (long)dtUs);
+            lastRaw = raw;
+            lastTimeUs = nowUs;
+        }
+        int velocity = currentVelocity;
+
+        // 1. Deflection Detection (latched as soon as stick moves past deadzone)
         if (abs(delta) > largeDeflectionThresh) {
             originSide = (delta > 0) ? 1 : -1;
             inReboundState = false;
@@ -99,8 +107,6 @@ public:
             }
         }
 
-        lastRaw = raw;
-        lastTime = nowMs;
         return filteredVal;
     }
 };

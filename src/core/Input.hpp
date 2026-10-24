@@ -149,18 +149,39 @@ inline int readJoystickAnalogY() {
 }
 
 // =======================================================
-// === Joystick State Change Read (single-trigger)
+// === Joystick State Change Read (single-trigger with Rebound Guard)
 // =======================================================
 inline Direction readJoystickStateChange() {
   static Direction lastDir = DIR_NONE;
+  static Direction prevRegisteredDir = DIR_NONE;
+  static unsigned long lastReleaseTime = 0;
+
   Direction current = readJoystickContinuous();
 
   if (current != lastDir && current != DIR_NONE) {
+    // Check if this is an immediate opposite mechanical rebound upon release
+    bool isOpposite = (prevRegisteredDir == DIR_LEFT && current == DIR_RIGHT) ||
+                      (prevRegisteredDir == DIR_RIGHT && current == DIR_LEFT) ||
+                      (prevRegisteredDir == DIR_UP && current == DIR_DOWN) ||
+                      (prevRegisteredDir == DIR_DOWN && current == DIR_UP);
+
+    if (isOpposite && (millis() - lastReleaseTime < 95)) {
+      // Suppress transient mechanical rebound: consume glitch without triggering game action
+      lastDir = current;
+      return DIR_NONE;
+    }
+
     lastDir = current;
+    prevRegisteredDir = current;
     return current;
   }
 
-  if (current == DIR_NONE) lastDir = DIR_NONE; // reset when released
+  if (current == DIR_NONE) {
+    if (lastDir != DIR_NONE) {
+      lastReleaseTime = millis();
+    }
+    lastDir = DIR_NONE;
+  }
   return DIR_NONE;
 }
 

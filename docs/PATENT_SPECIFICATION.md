@@ -3,7 +3,9 @@
 **Filing Jurisdiction:** Indian Patent Office (IPO) / The Patents Act, 1970 (Sections 2(1)(j), 2(1)(ja), 10(4), Form 2)  
 **International Classification (IPC/CPC):** `G06F 3/02`, `G06F 3/0338`, `H04W 4/00`, `H04L 67/12`  
 **Application Type:** Complete / Provisional Specification under Section 10 (Publication + Examination Track)  
-**Inventor / Applicant:** Ankit Chetri (Nationality: Indian, Gender: Male)  
+**Inventor / Applicant:** Ankit Chetri  
+**Gender:** Male  
+**Nationality & Residence:** Indian / Resident of India  
 **Affiliated Institution:** Department of Computer Science & Engineering (CSE), Manipal University Jaipur, Rajasthan, India  
 **Title:** **An Apparatus and Method for Kinematic Transducer Signal Conditioning and Low-Latency Telemetry in an Interactive Computing System**
 
@@ -57,7 +59,7 @@ The present invention resolves these physical and architectural bottlenecks thro
                                       ▼
                       ┌───────────────────────────────┐
                       │ |Δx| > Deflection Threshold?  │─── YES ──► Latch originSide = sgn(Δx)
-                      │       (θ_large = 800)         │            inReboundState = false
+                      │       (θ_large = 480 counts)         │            inReboundState = false
                       └───────────────┬───────────────┘
                                       │ NO
                                       ▼
@@ -83,9 +85,9 @@ The present invention resolves these physical and architectural bottlenecks thro
       [ inReboundState == TRUE ]                   [ inReboundState == FALSE ]
              │                                                 │
   ┌───────────────────────────────┐                            │
-  │ Timer expired? (t > 50 ms)    │                            │
+  │ Timer expired? (t > 50–85 ms)    │                            │
   │              OR               │─── YES ──► Exit Rebound    │
-  │ Intentional force > 1300?     │            Pass x_out = x[n]
+  │ Intentional force > 1200?     │            Pass x_out = x[n]
   └───────────────┬───────────────┘                            │
                   │ NO                                         │
                   ▼                                            ▼

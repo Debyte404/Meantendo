@@ -52,7 +52,7 @@ Mounting holes for the ESP32 dev board are on the standard 0.9" pitch. The TFT u
 | ESP32 Dev Board | 350–500 |
 | ST7735 Display | 200–350 |
 | Joystick Module | 80–120 |
-| Tactile Buttons (5x) | 30–50 |
+| Tactile Switches (5x + 1x SW) | 30–50 |
 | Buzzer | 30–50 |
 | Jumper Wires | 50–80 |
 | Breadboard | 60–100 |

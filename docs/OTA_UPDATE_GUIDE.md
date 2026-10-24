@@ -10,7 +10,7 @@ The **WiFi & Cloud Update** tool (`src/games/WifiUpdaterApp.cpp`) features a dua
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│ WiFi & Cloud Update                            v2.0.0  │
+│ WiFi & Cloud Update                            v2.3.9  │
 ├──────────────────────────┬─────────────────────────────┤
 │ NETWORKS                 │ KEYBOARD [ABC]              │
 │ ┌──────────────────────┐ │ [A][B][C][D][E][F]          │
@@ -88,12 +88,12 @@ The **WiFi & Cloud Update** tool (`src/games/WifiUpdaterApp.cpp`) features a dua
 1. **GitHub Connection**:
    - Once Wi-Fi connects, Meantendo queries:
      `https://api.github.com/repos/Debyte404/Meantendo/releases/latest`
-   - It parses the remote `tag_name` (e.g. `v2.1.0`) and compares it against `MEANTENDO_VERSION` (`v2.0.0`).
+   - It parses the remote `tag_name` (e.g. `v2.3.9`) and compares it against `MEANTENDO_VERSION` (`v2.3.9`).
    - If the API rate limit is reached or unauthenticated, it falls back to inspecting the redirect header from `https://github.com/Debyte404/Meantendo/releases/latest`.
 
 2. **OTA Streaming Installation**:
    - If a newer version is found, an on-screen dialog prompts:
-     `UPDATE FOUND: v2.1.0! Press A to Install`
+     `UPDATE FOUND: v2.3.9! Press A to Install`
    - When **A** is pressed, Meantendo streams the binary directly from GitHub CDN (`release-assets.githubusercontent.com`) into the inactive OTA app flash partition using `Update.write()`.
    - A live progress bar displays downloaded bytes, total size, and percentage.
    - Upon checksum verification, Meantendo plays a victory buzzer tone and calls `ESP.restart()`, booting cleanly into the new firmware!
@@ -106,7 +106,7 @@ A workflow has been configured at `.github/workflows/build-release.yml`:
 
 ```mermaid
 flowchart LR
-    A["Push Git Tag / Publish Release<br/>(e.g., v2.1.0)"] --> B["GitHub Actions Runner"]
+    A["Push Git Tag / Publish Release<br/>(e.g., v2.3.9)"] --> B["GitHub Actions Runner"]
     B --> C["Install PlatformIO & Dependencies"]
     C --> D["Compile firmware.bin<br/>(pio run -e esp32dev)"]
     D --> E["Upload firmware.bin to Release Assets"]
@@ -116,12 +116,12 @@ flowchart LR
 ### How to Release an Update:
 1. Increment the version in [`src/core/Config.hpp`](file:///D:/ValueProjects/Meantendo/Meantendo/src/core/Config.hpp):
    ```cpp
-   #define MEANTENDO_VERSION "v2.1.0"
+   #define MEANTENDO_VERSION "v2.3.9"
    ```
 2. Commit and tag:
    ```bash
-   git tag v2.1.0
-   git push origin v2.1.0
+   git tag v2.3.9
+   git push origin v2.3.9
    ```
 3. GitHub Actions builds `firmware.bin` and attaches it to the release automatically.
 4. Turn on Meantendo, go to **WiFi & Cloud Update**, press **Connect**, and it will detect and install the new update!
@@ -134,3 +134,16 @@ If you prefer setting Wi-Fi over USB Serial:
 - `SETWIFI <SSID> <PASSWORD>`: Saves network credentials directly to ESP32 NVS.
 - `STATUS`: Displays current firmware version, heap memory, and Wi-Fi status.
 - `REBOOT`: Restarts the console.
+
+---
+
+## Physical Hardware Verification Gallery
+
+<div align="center">
+
+| Wi-Fi Access Point Discovery | Firmware Update Found Popup | Flashing Partition Progress |
+| :---: | :---: | :---: |
+| <img src="../assets/wifi_scan.jpeg" alt="Wi-Fi Scanner" width="220" /> | <img src="../assets/ota_update_popup.jpeg" alt="Update Found" width="220" /> | <img src="../assets/ota_update_progress.jpeg" alt="Flashing Progress" width="220" /> |
+| Scanning local 2.4 GHz infrastructure networks | Remote GitHub release tag parsed & prompt displayed | Live binary stream written to OTA app partition |
+
+</div>

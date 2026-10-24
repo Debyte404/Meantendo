@@ -26,7 +26,7 @@
 > **Classification:** `G06F 3/02`, `G06F 3/0338`, `H04W 4/00`, `H04L 67/12`
 
 Meantendo incorporates four core hardware/firmware inventions engineered from first principles:
-1. **Smart Snapback Kinematic Conditioning Engine:** Real-time finite-difference velocity calculation ($v = \Delta x / \Delta t$) and zero-crossing detection that clamps mechanical thumbstick spring recoil for 50ms while preserving **0ms lag for outward human player strokes**.
+1. **Smart Snapback Kinematic Conditioning Engine:** Real-time finite-difference velocity calculation ($v = \Delta x / \Delta t$) and zero-crossing detection that clamps mechanical thumbstick spring recoil for 50–85ms while preserving **0ms lag for outward human player strokes**.
 2. **Deterministic Ad-Hoc RF Telemetry & Coexistence Channel Lock:** Sub-2ms 60 Hz bidirectional game state and input synchronization over direct unassociated 802.11 action frames (ESP-NOW Channel 1) with automatic frequency-lock recovery post-cloud roaming.
 3. **Zero-Buffer Dual Line-Buffer Raster Engine:** Composites scanlines line-by-line using dual 320-byte buffers (640 bytes total vs 40,960 bytes for full framebuffer, saving **98.4% RAM**), paired with a bounded dirty-span queue reducing SPI bus load by up to **90%**.
 4. **Hardware-Anchored Cryptographic Tournament Journaling:** Hardware TRNG salt and hardware-accelerated SHA-256 block hashing certifying game execution and high scores against offline memory tampering.
@@ -204,8 +204,8 @@ Meantendo/
 | **Button B (GPIO 33)** | Cancel / Back | Secondary Action / Cancel |
 | **Button X (GPIO 26)** | Toggle System Tools | Special Action (e.g. Player 2 UP) |
 | **Button Y (GPIO 27)** | Quick Sleep / Standby | Special Action (e.g. Player 2 DOWN) |
-| **Select (GPIO 14)** | Alternate Confirm | Pause / Status |
-| **Back (GPIO 13)** | Return to Main Menu | Immediate exit to Menu |
+| **Select (GPIO 19)** | Alternate Confirm (Joystick SW) | Pause / Status |
+| **Back (GPIO 25)** | Return to Main Menu | Immediate exit to Menu |
 
 ---
 

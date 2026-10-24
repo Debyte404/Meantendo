@@ -8,7 +8,7 @@ This comprehensive manual provides instructions for verifying all **4 patentable
 
 | Subsystem | Core Module | Technical Problem Solved | Verification Tool |
 |---|---|---|---|
-| **1. Transducer Anti-Snapback & ESP-NOW Mesh** | [`SnapbackEngine.hpp`](../src/core/SnapbackEngine.hpp)<br>[`Wireless.hpp`](../src/core/Wireless.hpp) | Eliminates mechanical spring recoil without input lag; provides sub-5ms P2P multiplayer | `System Lab` (Tabs 1 & 2)<br>`Pong` 2-Player Wireless |
+| **1. Transducer Anti-Snapback & ESP-NOW Mesh** | [`SnapbackEngine.hpp`](../src/core/SnapbackEngine.hpp)<br>[`Wireless.hpp`](../src/core/Wireless.hpp) | Eliminates mechanical spring recoil without input lag; provides sub-2ms physical airtime (1.42 ms avg) P2P multiplayer | `System Lab` (Tabs 1 & 2)<br>`Pong` 2-Player Wireless |
 | **2. Zero-Buffer & Dirty-Span Raster Engine** | [`RasterEngine.hpp`](../src/core/RasterEngine.hpp) | Eliminates 41KB frame buffer in RAM; cuts SPI bus bandwidth by 90% via dirty-span tracking | `Pong` (zero-flicker dirty rects)<br>`System Lab` |
 | **3. Deep Sleep Persistence & RTC Resume** | [`PowerStateEngine.hpp`](../src/core/PowerStateEngine.hpp) | Preserves game registers across 10µA sleep and sudden brownouts using 8KB RTC Fast/Slow RAM | `System Lab` (Tab 4: Press Y to sleep, A to wake) |
 | **4. Hardware-Anchored Crypto Execution Journal** | [`CryptoJournal.hpp`](../src/core/CryptoJournal.hpp) | Prevents memory spoofing of high scores via chained hardware SHA-256 hashing (mbedTLS + TRNG) | `Snake` (Game Over Seal)<br>`System Lab` (Tab 3) |
@@ -70,6 +70,13 @@ Use **Button X** to cycle through the 4 live diagnostic tabs.
 * **Result:** While the spring bounces back across the origin, the status instantly flashes **`DAMPING RECOIL!`** in red and clamps the filtered output to neutral center, completely suppressing the false opposite signal.
 
 ### Tab 2 — ESP-NOW Wireless Mesh
+
+<p align="center">
+  <img src="../assets/p2p_multiplayer_demo.gif" alt="P2P Multiplayer Mesh Demonstration" width="320" />
+  <br>
+  <em>Live Peer-to-Peer Telemetry Demonstration: Primary console (bottom) and secondary node (top right) playing real-time Pong over unassociated ESP-NOW action frames on dedicated Channel 1.</em>
+</p>
+
 * **Observation:** Shows live `Packets TX` incrementing rapidly (~66 packets/sec).
 * **Test:** Power on your second ESP32 running either the companion bridge or a second Meantendo.
 * **Result:** `Peer Status` transitions from `WAITING FOR PEER` to **`CONNECTED (<3ms)`** in green!

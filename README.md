@@ -211,7 +211,7 @@ Meantendo/
 
 ## Credits & Third-Party Libraries
 
-Engineered by **Debyte**
+Engineered by **Ankit Chetri (@Debyte404)**
 
 Third-party open-source libraries used under permissive licenses:
 - [Adafruit GFX](https://github.com/adafruit/Adafruit-GFX-Library) (BSD License)

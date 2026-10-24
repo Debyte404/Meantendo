@@ -38,6 +38,12 @@ Meantendo incorporates four core hardware/firmware inventions engineered from fi
 
 ## Demo
 
+<p align="center">
+  <img src="assets/snapback_test.gif" alt="Smart Snapback Hardware Test" width="300" />
+  <br>
+  <em>Live Hardware Snapback Test: Rapid thumbstick flicks showing real-time deflection velocity estimation & 85ms asymmetric recoil clamping with zero directional overshoot.</em>
+</p>
+
 [![Meantendo Demo](https://img.youtube.com/vi/cb1YR2BpdeY/0.jpg)](https://www.youtube.com/shorts/cb1YR2BpdeY)
 
 ---

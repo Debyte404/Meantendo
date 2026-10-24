@@ -60,6 +60,11 @@ Use **Button X** to cycle through the 4 live diagnostic tabs.
 ```
 
 ### Tab 1 — Smart Snapback Engine
+
+<p align="center">
+  <img src="../assets/snapback_test.gif" alt="Snapback Radar Test" width="280" />
+</p>
+
 * **Observation:** Move the joystick gently: notice `Filt X` and `Filt Y` track the raw coordinates with **0 latency**.
 * **Test:** Flick the joystick hard to one side and release your thumb abruptly.
 * **Result:** While the spring bounces back across the origin, the status instantly flashes **`DAMPING RECOIL!`** in red and clamps the filtered output to neutral center, completely suppressing the false opposite signal.

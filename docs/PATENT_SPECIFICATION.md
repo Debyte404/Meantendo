@@ -174,7 +174,11 @@ WE CLAIM:
 
 ## 7. Hardware Prototype Figures & Drawings
 
-* **Figure 1:** System Hardware Block Diagram showing processing unit, 12-bit SAR ADC, 2.4 GHz RF baseband, SPI display bus, and low-power retention RTC SRAM domain.
-* **Figure 2:** Kinematic Transducer Waveform Graph comparing raw underdamped spring overshoot against the conditioned asymmetric zero-lag clamped output.
-* **Figure 3:** Physical Assembled Prototype of the Primary Handheld Console showing 3D enclosure, thumbstick gimbal, 160×128 display, and switch array ([`assets/product.jpeg`](../assets/product.jpeg)).
-* **Figure 4:** Circuit Wiring and Pin Interconnects detailing SPI display lines, power distribution, and SAR ADC transducer lines ([`assets/wiring.jpeg`](../assets/wiring.jpeg)).
+* **Figure 1:** System Hardware Block Diagram and Algorithmic State Machine Flowchart detailing finite-difference velocity calculation, deflection latching, zero-crossing detection, and asymmetric clamping.
+* **Figure 2:** Physical Assembled Prototype of the Primary Handheld Console showing 3D enclosure, thumbstick gimbal, 160×128 display, and tactile switch array ([`assets/product.jpeg`](../assets/product.jpeg)).
+* **Figure 3:** Internal Circuit Wiring and Pin Interconnects detailing SPI display bus lines, power distribution, and SAR ADC transducer lines ([`assets/wiring.jpeg`](../assets/wiring.jpeg)).
+* **Figure 4:** Real-Time Smart Snapback Visual Radar on Console Hardware ([`assets/snapback_radar.jpeg`](../assets/snapback_radar.jpeg)), showing empirical on-screen tracking of analog joystick deflection, finite-difference velocity vector, and real-time rebound state clamping.
+* **Figure 5:** System Memory & Free SRAM Diagnostic Telemetry on Console Hardware ([`assets/ram_usage.jpeg`](../assets/ram_usage.jpeg)), verifying empirical RAM usage and demonstrating significant free heap headroom achieved via the 640-byte line-buffer rendering engine.
+* **Figure 6:** Wi-Fi Access Point Discovery Interface on Console Hardware ([`assets/wifi_scan.jpeg`](../assets/wifi_scan.jpeg)), illustrating graphical infrastructure scanning prior to cloud roaming.
+* **Figure 7A:** Over-The-Air Cloud Firmware Update Remote Version Detection Popup ([`assets/ota_update_popup.jpeg`](../assets/ota_update_popup.jpeg)), showing automated GitHub release tag detection and version comparison.
+* **Figure 7B:** Over-The-Air Firmware Streaming and Partition Writing Progress Screen ([`assets/ota_update_progress.jpeg`](../assets/ota_update_progress.jpeg)), illustrating live byte-count reception and real-time flash writing.

@@ -119,7 +119,7 @@ Debug output at 115200 baud.
 
 ## Next Steps
 
-- Play through all 13 games!
+- Play through all 17 titles (7 retro games, 4 patent diagnostic tools, 6 visual simulations)!
 - Try [adding a new game](CONTRIBUTING.md#new-games--demos)
 - Upgrade to a Li-Po battery for true handheld operation
 - Design a 3D-printed enclosure

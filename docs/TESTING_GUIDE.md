@@ -111,7 +111,7 @@ Use **Button X** to cycle through the 4 live diagnostic tabs.
 1. Launch **Pong** from the main menu.
 2. On the title screen, press **Button B** for 2-Player mode.
 3. **Dirty-Span Performance:** Notice the gameplay is buttery smooth without screen flickering because only the moving paddles and ball are cleared/redrawn, saving 90% SPI bandwidth.
-4. **Wireless Multiplayer:** Power on your companion board or second Meantendo. Move the joystick on the second device: the Right Paddle is steered remotely over the air via sub-5ms ESP-NOW!
+4. **Wireless Multiplayer:** Power on your companion board or second Meantendo. Move the joystick on the second device: the Right Paddle is steered remotely over the air via sub-2ms (1.42 ms physical airtime) ESP-NOW!
 
 ---
 
@@ -125,4 +125,4 @@ Use **Button X** to cycle through the 4 live diagnostic tabs.
    ```
    http://192.168.4.1/
    ```
-4. Move your Meantendo joystick and press buttons — the virtual controller on your laptop screen tracks your hardware with sub-5ms latency, and you can play the built-in *Space Raider* arcade game on your laptop display!
+4. Move your Meantendo joystick and press buttons — the virtual controller on your laptop screen tracks your hardware with sub-2ms physical airtime (1.42 ms), and you can play the built-in *Space Raider* arcade game on your laptop display!

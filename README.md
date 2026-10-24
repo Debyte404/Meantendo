@@ -70,10 +70,10 @@ Meantendo incorporates four core hardware/firmware inventions engineered from fi
 
 ## Features
 
-### 🕹️ Games & Demos (14 Built-In Applications)
-- **Playable Games:** Snake, Pong (1P vs AI / 2P Wireless Mesh), Tetris, Flappy Bird, Asteroids, Breakout, Conway's Game of Life.
-- **Visual Demos & Physics:** Matrix Rain, Kaleidoscope, Maze Solver, Dynamic Particles, Mandelbrot/Julia Fractals, Slime Simulator (Physarum polycephalum).
-- **Embedded Tools:** System Diagnostics Lab (live radar visualizer, telemetry monitor, crypto seal validator), Bluetooth Pad HUD, Cloud OTA Updater.
+### 🕹️ Games & Demos (17 Built-In Applications)
+- **Playable Games (7):** Snake, Pong (1P vs AI / 2P Wireless Mesh), Tetris, Flappy Bird, Asteroids, Breakout, Conway's Game of Life.
+- **Visual Demos & Physics (6):** Matrix Rain, Kaleidoscope, Maze Solver, Dynamic Particles, Mandelbrot/Julia Fractals, Slime Simulator (Physarum polycephalum).
+- **Embedded Tools (4):** System Diagnostics Lab (live radar visualizer, telemetry monitor, crypto seal validator), Wireless Controller Hub (ESP-NOW telemetry bridge), Bluetooth Pad HUD (Xbox BLE Gamepad), WiFi & Cloud OTA Updater.
 
 ### ⚡ Quad-Engine Architecture
 - **Kinematic Transducer Conditioning:** Eliminates mechanical snapback overshoot on cheap potentiometers without analog RC low-pass delays or oversized deadzones.

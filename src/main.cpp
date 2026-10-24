@@ -101,7 +101,7 @@ static void showSplash() {
 void setup() {
   Serial.begin(115200);
   delay(300);
-  Serial.println("\n=== Meantendo Console v2.0 [Quad-Engine Patent Edition] ===");
+  Serial.printf("\n=== Meantendo Console %s [Quad-Engine Patent Edition] ===\n", MEANTENDO_VERSION);
 
   // ── Hardware Init ──
   displayInit();

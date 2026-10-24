@@ -174,7 +174,7 @@ WE CLAIM:
 
 ## 7. Hardware Prototype Figures & Drawings
 
-* **Figure 1:** System Hardware Block Diagram and Algorithmic State Machine Flowchart detailing finite-difference velocity calculation, deflection latching, zero-crossing detection, and asymmetric clamping.
+* **Figure 1:** System Hardware Block Diagram and Algorithmic State Machine Flowchart detailing finite-difference velocity calculation, deflection latching, zero-crossing detection, and asymmetric clamping ([`assets/flowchart.png`](../assets/flowchart.png)).
 * **Figure 2:** Physical Assembled Prototype of the Primary Handheld Console showing 3D enclosure, thumbstick gimbal, 160×128 display, and tactile switch array ([`assets/product.jpeg`](../assets/product.jpeg)).
 * **Figure 3:** Internal Circuit Wiring and Pin Interconnects detailing SPI display bus lines, power distribution, and SAR ADC transducer lines ([`assets/wiring.jpeg`](../assets/wiring.jpeg)).
 * **Figure 4:** Real-Time Smart Snapback Visual Radar on Console Hardware ([`assets/snapback_radar.jpeg`](../assets/snapback_radar.jpeg)), showing empirical on-screen tracking of analog joystick deflection, finite-difference velocity vector, and real-time rebound state clamping.
@@ -182,4 +182,4 @@ WE CLAIM:
 * **Figure 6:** Wi-Fi Access Point Discovery Interface on Console Hardware ([`assets/wifi_scan.jpeg`](../assets/wifi_scan.jpeg)), illustrating graphical infrastructure scanning prior to cloud roaming.
 * **Figure 7A:** Over-The-Air Cloud Firmware Update Remote Version Detection Popup ([`assets/ota_update_popup.jpeg`](../assets/ota_update_popup.jpeg)), showing automated GitHub release tag detection and version comparison.
 * **Figure 7B:** Over-The-Air Firmware Streaming and Partition Writing Progress Screen ([`assets/ota_update_progress.jpeg`](../assets/ota_update_progress.jpeg)), illustrating live byte-count reception and real-time flash writing.
-* **Figure 8:** Live Hardware Operational Demonstration ([`assets/snapback_test.gif`](../assets/snapback_test.gif)), capturing rapid physical thumbstick flick tests on the assembled console, illustrating real-time on-screen deflection tracking, velocity estimation, and immediate rebound clamping without accidental reverse inputs.
+* **Figure 8:** Live Hardware Operational Demonstration & Flick Test ([`assets/snapback_test.gif`](../assets/snapback_test.gif) and [`assets/snapback_filmstrip.jpeg`](../assets/snapback_filmstrip.jpeg)), capturing rapid physical thumbstick flick tests on the assembled console, illustrating real-time on-screen deflection tracking, velocity estimation, and immediate rebound clamping without accidental reverse inputs.

@@ -36,15 +36,28 @@ Meantendo incorporates four core hardware/firmware inventions engineered from fi
 
 ---
 
-## Demo
+## 🎬 Live Hardware Demonstration & Video Showcase
 
-<p align="center">
-  <img src="assets/snapback_test.gif" alt="Smart Snapback Hardware Test" width="300" />
-  <br>
-  <em>Live Hardware Snapback Test: Rapid thumbstick flicks showing real-time deflection velocity estimation & 85ms asymmetric recoil clamping with zero directional overshoot.</em>
-</p>
+<div align="center">
 
-[![Meantendo Demo](https://img.youtube.com/vi/cb1YR2BpdeY/0.jpg)](https://www.youtube.com/shorts/cb1YR2BpdeY)
+| 🕹️ **Live Snapback Suppression Verification** | 📺 **Full Hardware Showcase & Gameplay** |
+| :---: | :---: |
+| <img src="assets/snapback_test.gif" alt="Smart Snapback Hardware Test" width="360" /> | <a href="https://www.youtube.com/shorts/cb1YR2BpdeY"><img src="https://img.youtube.com/vi/cb1YR2BpdeY/0.jpg" alt="Meantendo Full Demo Showcase" width="360" /></a> |
+| **Real-Time Recoil Clamping:** Rapid thumbstick flick releases showing real-time finite-difference velocity calculation ($v > 20\text{ counts/ms}$) and asymmetric recoil clamping with **zero directional overshoot** and 0ms forward lag. | **Watch Complete Feature Walkthrough:** Physical prototype boot-up, 60 Hz ESP-NOW P2P multiplayer mesh, dual-line display rendering, and 14 built-in games. *(Click thumbnail to watch)* |
+
+</div>
+
+### 📸 Physical Hardware & Diagnostic Telemetry Gallery
+
+<div align="center">
+
+| **Assembled Handheld Controller** | **Point-to-Point Circuit Wiring** | **Kinematic Snapback Visual Radar** |
+| :---: | :---: | :---: |
+| <img src="assets/product.jpeg" alt="Assembled Handheld Controller" width="230" /> | <img src="assets/wiring.jpeg" alt="Rear Perfboard Point-to-Point Circuit Wiring" width="230" /> | <img src="assets/snapback_radar.jpeg" alt="Smart Snapback Visual Radar" width="230" /> |
+| **TFT Display & RAM Telemetry** | **Wi-Fi Network Scanner** | **Cloud OTA Firmware Flashing** |
+| <img src="assets/ram_usage.jpeg" alt="System Memory & Free SRAM Diagnostic Telemetry" width="230" /> | <img src="assets/wifi_scan.jpeg" alt="Wi-Fi Access Point Discovery Interface" width="230" /> | <img src="assets/ota_update_progress.jpeg" alt="Over-The-Air Flash Partition Writing Progress" width="230" /> |
+
+</div>
 
 ---
 

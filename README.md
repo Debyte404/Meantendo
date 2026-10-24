@@ -40,12 +40,19 @@ Meantendo incorporates four core hardware/firmware inventions engineered from fi
 
 <div align="center">
 
-| 🕹️ **Live Snapback Suppression Verification** | 📺 **Full Hardware Showcase & Gameplay** |
+| 🕹️ **Kinematic Snapback Suppression** | ⚡ **P2P Multiplayer Mesh (Two ESP32 Nodes)** |
 | :---: | :---: |
-| <img src="assets/snapback_test.gif" alt="Smart Snapback Hardware Test" width="360" /> | <a href="https://www.youtube.com/shorts/cb1YR2BpdeY"><img src="https://img.youtube.com/vi/cb1YR2BpdeY/0.jpg" alt="Meantendo Full Demo Showcase" width="360" /></a> |
-| **Real-Time Recoil Clamping:** Rapid thumbstick flick releases showing real-time finite-difference velocity calculation ($v > 20\text{ counts/ms}$) and asymmetric recoil clamping with **zero directional overshoot** and 0ms forward lag. | **Watch Complete Feature Walkthrough:** Physical prototype boot-up, 60 Hz ESP-NOW P2P multiplayer mesh, dual-line display rendering, and 14 built-in games. *(Click thumbnail to watch)* |
+| <img src="assets/snapback_test.gif" alt="Smart Snapback Hardware Test" width="340" /> | <img src="assets/p2p_multiplayer_demo.gif" alt="ESP-NOW Two ESPs P2P Gameplay" width="340" /> |
+| **Real-Time Recoil Clamping:** Rapid thumbstick flick releases showing real-time finite-difference velocity calculation ($v > 20\text{ counts/ms}$) and asymmetric recoil clamping with **zero directional overshoot** and 0ms forward lag. | **Deterministic Ad-Hoc RF Telemetry:** Sub-2ms 60 Hz peer-to-peer multiplayer mesh between Primary Meantendo Console and Secondary Companion Node running real-time Pong wirelessly on dedicated Channel 1. |
 
 </div>
+
+<p align="center">
+  <a href="https://www.youtube.com/shorts/cb1YR2BpdeY">
+    <img src="https://img.youtube.com/vi/cb1YR2BpdeY/0.jpg" alt="Meantendo Full Demo Showcase" width="480" />
+  </a><br>
+  <em>📺 <strong>Watch Complete Feature Walkthrough:</strong> Physical prototype boot-up, wireless multiplayer mesh, dual-line display rendering, and 14 built-in games. (Click thumbnail to watch)</em>
+</p>
 
 ### 📸 Physical Hardware & Diagnostic Telemetry Gallery
 

@@ -3,147 +3,178 @@
 **Filing Jurisdiction:** Indian Patent Office (IPO) / The Patents Act, 1970 (Sections 2(1)(j), 2(1)(ja), 10(4), Form 2)  
 **International Classification (IPC/CPC):** `G06F 3/02`, `G06F 3/0338`, `H04W 4/00`, `H04L 67/12`  
 **Application Type:** Complete / Provisional Specification under Section 10  
-**Title:** **An Apparatus and Method for Kinematic Transducer Signal Conditioning and Deterministic Ad-Hoc RF Telemetry in an Embedded Interactive Controller**
+**Title:** **An Apparatus and Method for Kinematic Transducer Signal Conditioning and Low-Latency Telemetry in an Interactive Computing System**
 
 ---
 
 ## 1. Field of the Invention
 
-The present invention relates generally to embedded human-machine interfaces (HMI), precision analog transducers, and low-latency wireless communication architectures. More particularly, the invention relates to a system and method for real-time kinematic velocity estimation and asymmetric rebound suppression on spring-biased potentiometric transducers, combined with a deterministic ad-hoc radio frequency (RF) telemetry pipeline featuring automated frequency-channel lock recovery post-cloud network roaming.
+The present invention relates generally to embedded human-machine interfaces (HMI), precision analog input transducers, and low-latency wireless communication architectures. More particularly, the invention relates to an apparatus and method for real-time kinematic velocity estimation and asymmetric rebound suppression on spring-biased potentiometric transducers, combined with a synergistic low-latency telemetry and memory-optimized display pipeline in an embedded interactive computing system.
 
 ---
 
 ## 2. Background of the Invention & Prior Art Limitations
 
-### 2.1 The Physical Problem: Mechanical Transducer Snapback
-In human-machine interfaces, video game controllers, and robotic manipulators, thumbstick gimbals typically employ dual-axis carbon potentiometers or resistive wipers biased toward a mechanical neutral center by internal coil springs. When an operator defects the stick and abruptly releases it ("flicking"), the restorative spring accelerates the mechanical assembly back toward the center point. 
+### 2.1 The Technical Problem: Mechanical Transducer Snapback
+In human-machine interfaces, video game controllers, and industrial robotic manipulators, thumbstick gimbals typically employ dual-axis resistive carbon potentiometers biased toward a mechanical neutral center by internal coil springs. When an operator deflects the stick and abruptly releases it, the restorative spring accelerates the mechanical assembly back toward the center point. 
 
-Because physical springs are underdamped mechanical oscillators, the stick's inertia carries it past the neutral axis into the opposing quadrant before coming to rest. This phenomenon, known in the art as **mechanical snapback** or **recoil overshoot**, causes the analog-to-digital converter (ADC) to read transient voltage spikes in the reverse direction. In precision gaming (e.g., competitive fighting games, platformers) and sensitive robotic positioning, this overshoot registers catastrophic accidental inputs (such as an unintentional backward dash or reverse actuator command).
+Because physical coil springs and gimbal assemblies possess underdamped mechanical inertia, the stick overshoots across the neutral axis into the opposing quadrant before settling ("mechanical snapback" or "recoil overshoot"). Consequently, an analog-to-digital converter (ADC) sampling the wiper voltage registers transient readings in the reverse direction. In precision gaming and sensitive robotic positioning, this physical recoil registers unintended directional commands (such as an inadvertent reverse dash, turn, or actuator actuation).
 
 ### 2.2 Deficiencies in Prior Art
-1. **Passive Analog Hardware Low-Pass Filtering:** A common DIY mitigation involves soldering ceramic capacitors (220 nF – 1.0 µF) directly across potentiometer wipers to ground, creating an analog RC filter. While this dampens high-frequency voltage spikes, it attenuates all high-frequency signals indiscriminately, introducing **15 to 30 milliseconds of uncorrectable phase delay (input lag)** that severely degrades operator reaction times.
-2. **Software Deadzone Expansion:** Enlarging the resting deadzone prevents snapback only by masking large portions of the transducer's physical travel, sacrificing fine-grained control and precision near the center.
-3. **Contactless Sensors and Active Dampening:** Newer controllers utilize Hall-effect or Tunnel Magnetoresistance (TMR) contactless sensors. While immune to carbon wiper wear, these sensors do not alter the physical momentum of the plastic thumbstick gimbal. Solutions requiring high-viscosity hydraulic greases or active magnetorheological fluid assemblies (e.g., Nintendo US Patent 11,460,883) introduce significant manufacturing expense and mechanical drag.
+1. **Passive Analog Hardware Low-Pass Filtering:** A common DIY mitigation involves soldering ceramic capacitors (220 nF – 1.0 µF) directly across potentiometer wipers to ground, creating an analog RC filter. While this dampens high-frequency voltage spikes, it attenuates all high-frequency signals indiscriminately, introducing **15 to 30 milliseconds of uncorrectable phase delay (input lag)** that degrades operator reaction times.
+2. **Software Deadzone Inflation:** Enlarging the resting deadzone prevents snapback only by masking large portions of the transducer's physical travel, sacrificing fine-grained control and precision near the center.
+3. **Contactless Sensors and Damping Greases:** While contactless sensors (e.g., Hall effect or magnetoresistive sensors) eliminate carbon wiper friction, they do not eliminate the physical momentum of the spring-loaded plastic stick. Conventional methods rely on high-viscosity damping greases or complex mechanical assemblies that introduce physical drag and increase manufacturing costs.
 
-### 2.3 The Wireless Telemetry Problem: Latency, Airtime Contention & Channel Drift
-Local multi-device interactive computing systems conventionally rely on standard Wi-Fi infrastructure (TCP/IP over wireless Access Points) or Bluetooth Human Interface Device (HID) profiles. TCP/IP routing, address resolution (ARP), and retransmission handshakes introduce 40 to 80 milliseconds of latency and severe packet jitter. 
+### 2.3 The Wireless Telemetry & Memory Coexistence Problem
+Local multi-device interactive computing systems conventionally rely on standard Wi-Fi infrastructure (TCP/IP over wireless Access Points) or Bluetooth Human Interface Device (HID) profiles. TCP/IP routing, address resolution (ARP), and retransmission handshakes introduce 40 to 80 milliseconds of latency and packet jitter. 
 
-Conversely, while low-overhead ad-hoc physical layer frames (e.g., IEEE 802.11 action frames / ESP-NOW) bypass network stacks to achieve sub-millisecond airtime, they are strictly channel-bound. When an embedded device connects to an external infrastructure network (e.g., a home Wi-Fi router on Channel 6 or 11 to download an Over-the-Air firmware update), the radio baseband drifts away from the local peer-to-peer ad-hoc frequency. Upon disconnecting from the infrastructure network, standard firmware stacks leave the radio on the router's channel, rendering peer devices completely deaf to one another.
+Conversely, while low-overhead ad-hoc physical layer frames (e.g., IEEE 802.11 vendor-specific action frames) bypass network stacks to achieve low airtime, they are strictly channel-bound. When an embedded device connects to an external infrastructure network (e.g., a home Wi-Fi router on Channel 6 or 11 to download a cloud firmware update), the radio baseband shifts away from the local peer-to-peer ad-hoc frequency. Upon disconnecting from the infrastructure network, standard firmware stacks leave the radio on the router's channel, rendering peer devices deaf to one another. Furthermore, full-color framebuffers (e.g., 40+ KB) consume critical internal SRAM needed to maintain concurrent radio packet queues and Bluetooth stacks on resource-constrained microcontrollers.
 
 ---
 
 ## 3. Summary of the Invention
 
-The present invention provides an integrated embedded apparatus and method that overcomes the limitations of the prior art through a multi-stage physical signal conditioning and telemetry pipeline:
+The present invention resolves these physical and architectural bottlenecks through a multi-stage signal conditioning and synergistic system pipeline:
 
-1. **Zero-Lag Asymmetric Kinematic Rebound Damping:** The microcontroller computes discrete finite-difference velocity vectors $v = \frac{\Delta x}{\Delta t}$ of transducer displacement. By tracking the quadrant of origin, detecting a rapid return trajectory toward center ($|v| > v_{thresh}$), and identifying a zero-axis sign reversal, the system detects mechanical recoil within 2 milliseconds. An asymmetric temporal clamp ($\tau_r \approx 20\text{--}50\text{ ms}$) suppresses opposing recoil signals while allowing deliberate operator accelerations away from center through with **zero added latency**.
-2. **Deterministic Ad-Hoc RF Telemetry & Coexistence Channel Lock:** Conditioned coordinate vectors, digital switch states, and interactive entity matrices are packed into a compact 20-byte payload broadcasted at 60 Hz over direct unassociated 802.11 action frames locked to Channel 1 (2.412 GHz). A radio coexistence engine monitors infrastructure network states: upon completing an IP-based cloud update, it automatically purges TCP/IP network associations, resets the baseband station PHY layer, and restores the Channel 1 hardware lock, guaranteeing deterministic peer discovery and sub-2ms synchronization.
-3. **Zero-Buffer Line Rasterization with Dirty-Span Bounding:** System RAM constraints are resolved by replacing a full 40,960-byte framebuffer with dual alternating 320-byte ping-pong line buffers (640 bytes total, a **98.4% RAM reduction**), paired with a bounded 16-element dirty-span queue that selectively erases only modified pixel bounding boxes, slashing SPI bus transfer volume by up to 90%.
-4. **Hardware Cryptographic Session Journaling & RTC Persistence:** Every interactive score transition is hashed in real time using the microcontroller's hardware True Random Number Generator (TRNG) and hardware SHA-256 accelerator to produce an anti-tamper score seal, while internal 8KB RTC Fast SRAM retains game state registers across 10µA deep sleep with sub-50ms instant-on interrupt recovery.
+1. **Directional Asymmetric Kinematic Rebound Damping:** The microcontroller computes discrete finite-difference velocity vectors $v = \frac{\Delta x}{\Delta t}$ of transducer displacement. By tracking the quadrant of origin, detecting a rapid return trajectory toward center ($|v| > v_{thresh}$), and identifying a zero-axis sign reversal, the system detects mechanical recoil. An asymmetric temporal clamp ($\tau_r \approx 20\text{--}50\text{ ms}$) suppresses opposing recoil signals to the neutral center while allowing deliberate operator accelerations away from center through with **zero added latency**.
+2. **Synergistic Low-Latency Ad-Hoc RF Telemetry:** Conditioned coordinate vectors and switch states are serialized into compact fixed-length action frames broadcast at 60 Hz over direct unassociated 802.11 action frames locked to a dedicated channel (Channel 1, 2.412 GHz), achieving sub-2 millisecond physical packet airtime. A coexistence engine automatically restores the Channel 1 hardware lock after cloud network roaming.
+3. **Zero-Buffer Line Rasterization & Memory Headroom:** Display scanlines are composited line-by-line using dual alternating 320-byte ping-pong line buffers (640 bytes total, a **98.4% RAM reduction** compared to a 40,960-byte framebuffer), freeing internal SRAM to run concurrent RF baseband queues and wireless stacks without heap exhaustion.
+4. **Low-Power Retention RTC SRAM Persistence:** State registers are preserved in an internal low-power retention RTC SRAM domain during deep sleep ($10\text{--}15\mu\text{A}$ quiescent draw on the core module), enabling instant-on resumption via external switch interrupt.
 
 ---
 
-## 4. System Architecture & Forensic Subsystem Breakdown
+## 4. Algorithmic State Machine & Architectural Flowchart
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│               MEANTENDO EMBEDDED CONSOLE (ESP32)                       │
-├─────────────────────────┬──────────────────────┬───────────────────────┤
-│ 1. Transducer Filter    │ 2. Display Pipeline  │ 3. Memory & Power     │
-│   SnapbackEngine.hpp    │   RasterEngine.hpp   │  PowerStateEngine.hpp │
-│   - Zero-lag attack     │   - 640B Line-Buffer │  - 8KB RTC Fast/Slow  │
-│   - 50ms rebound clamp  │   - Dirty-Span Erase │  - 10µA Deep Sleep    │
-│   - Auto-calibration    │   - 90% SPI bus save │  - Button A Wakeup    │
-├─────────────────────────┴──────────────────────┴───────────────────────┤
-│ 4. Wireless Telemetry & Hardware Security                              │
-│   Wireless.hpp (ESP-NOW Sub-2ms)  |  CryptoJournal.hpp (SHA256 TRNG)   │
-│   - Channel 1 Radio Lock          |  - Hardware Chained Blocks         │
-│   - P2P 60Hz Telemetry Broadcast  |  - Anti-Tamper Score Seal Token    │
-└────────────────────────────────────────────────────────────────────────┘
+                          [ START: ADC Read x[n] ]
+                                      │
+                                      ▼
+                      Calculate Velocity: v = (x[n] - x[n-1]) / dt
+                      Calculate Delta:    Δx = x[n] - x_center
+                                      │
+                                      ▼
+                      ┌───────────────────────────────┐
+                      │ |Δx| > Deflection Threshold?  │─── YES ──► Latch originSide = sgn(Δx)
+                      │       (θ_large = 800)         │            inReboundState = false
+                      └───────────────┬───────────────┘
+                                      │ NO
+                                      ▼
+                      ┌───────────────────────────────┐
+                      │   Moving Toward Center Fast?  │─── YES ──► Set fastReturnActive = true
+                      │  (sgn(v) == -originSide &&   │
+                      │       |v| > v_thresh)         │
+                      └───────────────┬───────────────┘
+                                      │ NO
+                                      ▼
+                      ┌───────────────────────────────┐
+                      │ Cross Deadzone to Opp. Side?  │─── YES ──► Engage inReboundState = true
+                      │   (fastReturnActive &&       │            Start Timer: t_rebound = now
+                      │    sgn(Δx) == -originSide && │
+                      │       |Δx| > deadzone)        │
+                      └───────────────┬───────────────┘
+                                      │
+                                      ▼
+                         [ Evaluate inReboundState ]
+                                      │
+             ┌────────────────────────┴────────────────────────┐
+             │                                                 │
+      [ inReboundState == TRUE ]                   [ inReboundState == FALSE ]
+             │                                                 │
+  ┌───────────────────────────────┐                            │
+  │ Timer expired? (t > 50 ms)    │                            │
+  │              OR               │─── YES ──► Exit Rebound    │
+  │ Intentional force > 1300?     │            Pass x_out = x[n]
+  └───────────────┬───────────────┘                            │
+                  │ NO                                         │
+                  ▼                                            ▼
+       Clamp to Neutral Center:                    Zero-Latency Passthrough:
+          x_out = x_center                              x_out = x[n]
+                  │                                            │
+                  └───────────────────────┬────────────────────┘
+                                          │
+                                          ▼
+                         [ Output Conditioned Coordinate ]
+                                          │
+                  ┌───────────────────────┴───────────────────────┐
+                  ▼                                               ▼
+         [ Local Graphic Engine ]                       [ 60 Hz Ad-Hoc RF Frame ]
+      Dual 320B Line Buffers +                       Sub-2ms Airtime Broadcast
+      Dirty-Span Bounding Erase                      Locked to Radio Channel 1
 ```
 
-### 4.1 Transducer Conditioning Mathematical Model
-The kinematic filter executes periodically on sampled 12-bit ADC data ($x \in [0, 4095]$, nominal center $x_{center} = 2048$):
+---
 
-$$\Delta x[n] = x[n] - x_{center}$$
+## 5. Experimental Verification & Test Data
 
-$$v[n] = \frac{x[n] - x[n-1]}{t[n] - t[n-1]}$$
+The physical apparatus was benchmarked across multi-session operational cycles:
 
-The algorithm executes the following state transitions:
-1. **Deflection Latching:** If $|\Delta x[n]| > \theta_{large}$ (where $\theta_{large} = 800$), latch $\text{originSide} = \text{sgn}(\Delta x[n])$.
-2. **Trajectory Detection:** If $\text{originSide} \neq 0$ and $\text{sgn}(v[n]) = -\text{originSide}$ with $|v[n]| > v_{thresh}$ (where $v_{thresh} = 25\text{ counts/ms}$), assert $\text{fastReturnActive} = \text{true}$.
-3. **Zero-Crossing Reversal:** If $\text{fastReturnActive} == \text{true}$ and $\text{sgn}(\Delta x[n]) == -\text{originSide}$ while $|\Delta x[n]| > \theta_{deadzone}$ (where $\theta_{deadzone} = 400$), transition to $\text{inReboundState} = \text{true}$ and record $t_{start} = t[n]$.
-4. **Conditional Suppression:** For $t[n] - t_{start} < \tau_{rebound}$ (where $\tau_{rebound} = 50\text{ ms}$):
-   - If $|\Delta x[n]| > \theta_{override}$ (where $\theta_{override} = 1300$), abort rebound state immediately and pass $x_{filtered} = x[n]$ (deliberate user stroke).
-   - Else, clamp $x_{filtered} = x_{center}$.
-5. **Zero-Latency Normal Passthrough:** In all other states, $x_{filtered} = x[n]$ with zero delay.
+1. **Transducer Rebound Suppression Characterization:**
+   - *Test Procedure:* Analog potentiometric gimbal deflected to maximum travel (ADC 4095) and released abruptly ("flick test").
+   - *Unfiltered Baseline:* Mechanical spring recoil produced a reverse voltage spike reaching ADC 1200 (an overshoot of 848 ADC counts past the 2048 center into the opposing quadrant), triggering false reverse actuations.
+   - *Present Invention:* Kinematic state machine detected the recoil trajectory within 2 milliseconds of deadzone entry; coordinate values clamped to neutral center (2048) for the 50ms window; 0 false reverse commands registered; forward strokes experienced 0ms added phase delay.
+2. **RF Telemetry Airtime & Reliability:**
+   - *Test Procedure:* 60 Hz bidirectional telemetry exchange between primary handheld apparatus and secondary companion node over dedicated Channel 1.
+   - *Airtime Measurement:* One-way physical packet transmission airtime across the air measured at **1.42 ms average** (well within the 16.7 ms frame interval of a 60 Hz interactive loop).
+   - *Throughput:* Sustained concurrent transmission of 20-byte packed telemetry frames across continuous multi-minute interactive sessions.
+3. **RAM Optimization Benchmark:**
+   - *Full Framebuffer Baseline:* 40,960 bytes RAM (160×128×16-bit RGB565).
+   - *Present Invention Line Buffer:* 640 bytes RAM (dual alternating 320-byte buffers).
+   - *RAM Savings:* **98.44% memory reduction**, preserving internal SRAM for concurrent RF radio descriptors, MAC queues, and application logic.
+4. **Low-Power Sleep Current:**
+   - *Quiescent Current:* Core module deep-sleep current measured at **11.2 µA** at 3.3V with display blanked and CPU powered down.
+   - *State Restoration Time:* Waking from deep sleep via Button A external interrupt restored state registers from low-power retention RTC SRAM in **38 ms**.
 
 ---
 
-## 5. Experimental Verification & Test Characterisation Data
-
-The physical invention was benchmarked across 10,000+ real-time hardware cycles:
-
-| Parameter | Baseline (Prior Art / No Filter) | Present Invention | Technical Gain |
-|---|---|---|---|
-| **Potentiometer Recoil Voltage Spike** | Overshoot by 848 ADC counts past center into opposite quadrant | Clamped to neutral center (2048) within 2ms of zero-crossing | **100% false input suppression** |
-| **Forward Input Phase Delay** | 20–30 ms (with software moving averages) | 0.0 ms (instantaneous passthrough) | **Zero added latency** |
-| **Peer Telemetry Airtime Latency** | 45–80 ms (Wi-Fi TCP/IP Access Point) | 1.42 ms average (ESP-NOW Action Frames) | **>96% latency reduction** |
-| **Telemetry Reliability (60 Hz)** | Frequent packet drops during network congestion | 4,426 transmitted / 5,456 received with 0 dropped frames | **Deterministic 60 FPS sync** |
-| **Frame Buffer SRAM Consumption** | 40,960 bytes (160×128×16-bit RGB565) | 640 bytes (dual 320-byte line buffers) | **98.44% RAM reduction** |
-| **Deep Sleep Quiescent Current** | 15–25 mA (idle CPU / unpowered sleep) | 11.2 µA at 3.3V | **>1,000× battery life improvement** |
-| **State Wakeup Latency** | Full cold reboot (>1,200 ms) | 38 ms (instant-on RTC memory restore) | **31× faster resumption** |
-
----
-
-## 6. Complete Patent Claims (IPO Form 2 / USPTO Ready)
+## 6. Complete Patent Claims Set
 
 ```text
 WE CLAIM:
 
-1. An embedded interactive computing apparatus, comprising:
-   - a physical control interface comprising at least one two-axis analog potentiometric transducer biased by a mechanical restorative element toward a neutral position, and a plurality of tactile digital switches;
-   - an analog-to-digital conversion (ADC) peripheral coupled to said two-axis transducer;
-   - a graphic display panel coupled via a serial peripheral interface (SPI) bus;
-   - a wireless radio frequency (RF) transceiver configured for direct peer-to-peer frame transmission; and
-   - a microcontroller unit (MCU) comprising at least one processing core, an internal non-volatile real-time clock (RTC) memory, a hardware cryptographic accelerator, and an internal memory storing firmware instructions, wherein said microcontroller unit is configured to:
-     a) periodically sample digital coordinate values (x_n, y_n) from said ADC peripheral at predetermined sampling intervals;
-     b) calculate a real-time kinematic velocity vector (Δx_n, Δy_n) representing the rate of displacement of said transducer;
-     c) detect an underdamped mechanical snapback condition based on a combination of a prior deflection exceeding a predetermined threshold, a return velocity toward the neutral position exceeding a velocity threshold, and a zero-axis sign reversal;
-     d) conditionally apply an asymmetric hysteresis filter that suppresses opposing directional actuations during a calibrated rebound time window (τ_r) while providing zero-latency passthrough for outward displacement actuations;
-     e) format filtered coordinate values and tactile switch states into a compact telemetry payload; and
-     f) selectively route said telemetry payload to a local graphic rendering pipeline and concurrently broadcast said payload via said wireless RF transceiver to a companion receiving node.
+1. An embedded interactive signal conditioning apparatus, comprising:
+   - a physical control interface comprising at least one two-axis analog potentiometric transducer biased by a mechanical restorative element toward a neutral position;
+   - an analog-to-digital converter (ADC) peripheral coupled to said two-axis transducer; and
+   - a processing unit coupled to said ADC peripheral and an internal memory storing firmware instructions, wherein said processing unit is configured to:
+     a) sample digital coordinate values (x[n], y[n]) from said ADC peripheral at periodic sampling intervals;
+     b) compute a discrete finite-difference displacement velocity vector representing the rate of change of coordinate displacement between successive sampling intervals;
+     c) identify an underdamped mechanical snapback condition based on a prior deflection exceeding a predetermined deflection threshold, a return velocity toward said neutral position exceeding a velocity threshold, and an axis sign reversal transitioning across a neutral deadzone into an opposing quadrant;
+     d) conditionally apply an asymmetric directional filter that clamps coordinate values in said opposing quadrant to said neutral position during a calibrated temporal rebound window (τ_r) while providing zero-latency passthrough for operator-directed displacement away from said neutral position; and
+     e) output conditioned coordinate values for interactive control.
 
-2. The apparatus of claim 1, wherein said asymmetric hysteresis filter clamps opposing-quadrant coordinate values to said neutral position for the duration of said calibrated rebound time window (τ_r), wherein τ_r is configured within the range of 20 milliseconds to 55 milliseconds.
+2. The apparatus of claim 1, wherein said calibrated temporal rebound window (τ_r) is configured within a range of 20 milliseconds to 55 milliseconds.
 
-3. The apparatus of claim 1, wherein said microcontroller unit dynamically aborts coordinate clamping within said rebound time window if an outward displacement force exceeding an intentional deflection threshold is detected.
+3. The apparatus of claim 1, wherein said processing unit is configured to abort coordinate clamping within said temporal rebound window if an outward displacement in said opposing quadrant exceeding an intentional override threshold is detected.
 
-4. The apparatus of claim 1, wherein said microcontroller unit samples resting ADC readings during initialization to dynamically establish an internal neutral reference coordinate, compensating for operational voltage drift and physical potentiometer wear.
+4. The apparatus of claim 1, wherein said processing unit samples resting ADC readings during an initialization routine to dynamically establish an internal neutral reference coordinate, compensating for operational voltage drift and physical potentiometer wear.
 
-5. The apparatus of claim 1, wherein said wireless RF transceiver broadcasts fixed-length action frames directly over an unassociated 802.11 channel locked to 2.412 GHz (Channel 1) with an end-to-end transmission latency not exceeding 2 milliseconds.
+5. An embedded low-latency interactive computing system, comprising:
+   - the signal conditioning apparatus of claim 1;
+   - a serial graphic display panel coupled via a serial peripheral interface (SPI) bus;
+   - a wireless radio frequency (RF) transceiver configured for peer-to-peer packet transmission;
+   - an internal graphic rendering pipeline comprising dual alternating line buffers having an aggregate memory allocation not exceeding 1 kilobyte of random-access memory (RAM), wherein display scanlines are composited line-by-line and streamed over said SPI bus, thereby freeing internal RAM for concurrent packet queue buffers of said RF transceiver; and
+   - wherein said processing unit is configured to serialize said conditioned coordinate values into fixed-length action frames and broadcast said frames via said wireless RF transceiver directly over an unassociated 802.11 channel.
 
-6. The apparatus of claim 5, wherein said microcontroller unit, upon disconnecting from an external internet-connected Wi-Fi access point, automatically purges IP network associations and re-initializes said RF transceiver to lock back to Channel 1, thereby preventing frequency-channel desynchronization with peer nodes.
+6. The system of claim 5, wherein said wireless RF transceiver broadcasts said fixed-length action frames on a dedicated radio channel locked to 2.412 GHz (Channel 1) with a physical frame airtime not exceeding 2 milliseconds.
 
-7. The apparatus of claim 1, wherein said graphic rendering pipeline comprises dual alternating line buffers having an aggregate memory allocation not exceeding 1 kilobyte of random-access memory, wherein scanlines of a display frame are composited line-by-line and streamed over said SPI bus without allocating a full-frame display buffer in system memory.
+7. The system of claim 6, wherein said processing unit, upon disconnecting from an external internet-connected Wi-Fi access point, automatically terminates IP network associations, resets the RF station physical layer, and re-locks the transceiver baseband to said dedicated radio channel (Channel 1), preventing channel desynchronization with peer receiving nodes.
 
-8. The apparatus of claim 7, wherein said graphic rendering pipeline maintains a bounded queue of coordinates corresponding to active visual entities from an immediately preceding frame, and selectively transmits erasure commands restricted to said bounded coordinates prior to rendering new entity positions, thereby reducing SPI bus data transfer volume by at least 80 percent relative to full-frame clearing.
+8. The system of claim 5, wherein said graphic rendering pipeline maintains a bounded queue of bounding coordinates corresponding to active visual entities from an immediately preceding display frame, and selectively transmits background erasure commands restricted to said bounded coordinates prior to rendering new entity positions, reducing SPI bus data transfer volume relative to full-frame display clearing.
 
-9. The apparatus of claim 1, wherein said microcontroller unit is configured to serialize interactive execution state registers into said internal non-volatile RTC memory, blank said graphic display panel, and transition into an ultra-low-power deep sleep mode consuming less than 15 microamperes, wherein actuation of at least one designated tactile digital switch asserts an external hardware interrupt that wakes said microcontroller unit and restores said execution state registers within 50 milliseconds.
+9. The system of claim 5, wherein said processing unit is configured to serialize interactive execution state registers into an internal low-power retention real-time clock (RTC) static RAM domain, blank said graphic display panel, and transition into a deep sleep mode consuming less than 15 microamperes at the core module, wherein actuation of at least one designated tactile switch asserts a hardware interrupt that wakes said processing unit and restores said execution state registers within 50 milliseconds.
 
-10. A method for conditioning mechanical transducer signals and streaming deterministic telemetry in an embedded interactive apparatus, the method comprising:
-    1) reading, via an analog-to-digital converter, raw coordinate signals from a spring-biased dual-axis resistive transducer;
-    2) computing a discrete displacement velocity vector between consecutive sample intervals;
-    3) identifying a mechanical recoil event when the transducer returns from a deflected state exceeding a first threshold with a velocity exceeding a second threshold and transitions across a neutral axis into an opposing quadrant;
-    4) executing an asymmetric damping routine that selectively clamps coordinate values to a neutral center during a defined temporal window while preserving instantaneous transmission of operator-directed accelerations away from the neutral axis;
-    5) serializing conditioned coordinate values and switch states into a fixed-length radio frame; and
-    6) transmitting said radio frame directly over an ad-hoc 802.11 action frame channel to an external peer node without establishing a TCP/IP network connection.
+10. A method for conditioning mechanical transducer signals in an embedded interactive apparatus, the method comprising:
+    1) periodically reading, via an analog-to-digital converter, raw coordinate signals from a spring-biased resistive transducer;
+    2) computing a discrete finite-difference displacement velocity between consecutive sample intervals;
+    3) identifying a mechanical recoil event when the transducer returns from a deflected state exceeding a first threshold with a velocity exceeding a second threshold and transitions across a neutral deadzone into an opposing quadrant;
+    4) executing an asymmetric damping routine that selectively clamps coordinate values to a neutral center during a calibrated temporal window while preserving instantaneous transmission of operator-directed accelerations away from the neutral axis; and
+    5) outputting conditioned coordinate values to an interactive computing pipeline.
 ```
 
 ---
 
 ## 7. Hardware Prototype Figures & Drawings
 
-* **Figure 1:** System Hardware Block Diagram showing dual-core MCU, 12-bit SAR ADC, 2.4 GHz RF baseband, SPI display bus, and RTC memory domains.
+* **Figure 1:** System Hardware Block Diagram showing processing unit, 12-bit SAR ADC, 2.4 GHz RF baseband, SPI display bus, and low-power retention RTC SRAM domain.
 * **Figure 2:** Kinematic Transducer Waveform Graph comparing raw underdamped spring overshoot against the conditioned asymmetric zero-lag clamped output.
 * **Figure 3:** Physical Assembled Prototype of the Primary Handheld Console showing 3D enclosure, thumbstick gimbal, 160×128 display, and switch array ([`assets/product.jpeg`](../assets/product.jpeg)).
 * **Figure 4:** Circuit Wiring and Pin Interconnects detailing SPI display lines, power distribution, and SAR ADC transducer lines ([`assets/wiring.jpeg`](../assets/wiring.jpeg)).
